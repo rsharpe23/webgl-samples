@@ -84,15 +84,15 @@ const mvMatrix = mat4.create();
 const u_PMatrix = gl.getUniformLocation(program, 'u_PMatrix');
 const u_MVMatrix = gl.getUniformLocation(program, 'u_MVMatrix');
 
-gl.viewport(0, 0, width, height);
 gl.enable(gl.DEPTH_TEST);
+gl.viewport(0, 0, width, height);
 
 mat4.perspective(pMatrix, 1.04, width / height, 0.1, 100.0);
 
 (function render(elapsedTime) {
 
   gl.clearColor(0.0, 0.0, 0.1, 1.0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   mat4.identity(mvMatrix);
   mat4.translate(mvMatrix, mvMatrix, [0.0, 0.1, -2.2]);
