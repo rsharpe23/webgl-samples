@@ -63,38 +63,34 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
 ]), gl.STATIC_DRAW);
 // ---------------
 
-// Установка атрибутов
-const a_Pos = gl.getAttribLocation(program, 'a_Pos');
-gl.enableVertexAttribArray(a_Pos);
-gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-gl.vertexAttribPointer(a_Pos, 3, gl.FLOAT, false, 0, 0);
-
-const a_Color = gl.getAttribLocation(program, 'a_Color');
-gl.enableVertexAttribArray(a_Color);
-gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, 0, 0);
-// ---------------
-
+// Инициализация данных
 const { width, height } = canvas;
 const { mat4 } = glMatrix;
 
 const pMatrix = mat4.create();
 const mvMatrix = mat4.create();
 
+const a_Color = gl.getAttribLocation(program, 'a_Color');
+gl.enableVertexAttribArray(a_Color);
+
+const a_Pos = gl.getAttribLocation(program, 'a_Pos');
+gl.enableVertexAttribArray(a_Pos);
+
 const u_PMatrix = gl.getUniformLocation(program, 'u_PMatrix');
 const u_MVMatrix = gl.getUniformLocation(program, 'u_MVMatrix');
-
-gl.enable(gl.DEPTH_TEST);
-gl.viewport(0, 0, width, height);
-
-mat4.perspective(pMatrix, 1.04, width / height, 0.1, 100.0);
+// ---------------
 
 (function render(elapsedTime) {
+
+  gl.viewport(0, 0, width, height);
+  gl.enable(gl.DEPTH_TEST);
 
   gl.clearColor(0.0, 0.0, 0.1, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+  mat4.perspective(pMatrix, 1.04, width / height, 0.1, 100.0);
   mat4.identity(mvMatrix);
+  
   mat4.translate(mvMatrix, mvMatrix, [0.0, 0.1, -2.2]);
   mat4.rotate(mvMatrix, mvMatrix, 0.6, [1, 0, 0]);
 
@@ -104,12 +100,18 @@ mat4.perspective(pMatrix, 1.04, width / height, 0.1, 100.0);
   // Обычный косинус изменяется нелинейно. Из-за этого  
   // куб как бы зависает на некоторых значениях масштаба  
   // Формула Math.acos(Math.cos(t)) cделает "пинг-понг".
-  const t = elapsedTime * Math.PI / 180 * 0.06; // deg2rad
+  const t = degToRad(elapsedTime) * 0.06;
   const value = Math.acos(Math.cos(t)) / (Math.PI * 2) + 0.5;
   mat4.scale(mvMatrix, mvMatrix, [value, value, value]);
 
   gl.uniformMatrix4fv(u_PMatrix, false, pMatrix);
   gl.uniformMatrix4fv(u_MVMatrix, false, mvMatrix);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  gl.vertexAttribPointer(a_Pos, 3, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, 0, 0);
 
   gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
 
