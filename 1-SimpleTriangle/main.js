@@ -23,7 +23,7 @@ gl.enableVertexAttribArray(a_Pos);
 
 // Отрисовка примитивов       
 gl.viewport(0, 0, canvas.width, canvas.height); 
-gl.clearColor(1.0, 0.0, 0.0, 0.5);
+gl.clearColor(0.0, 0.0, 0.2, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 gl.vertexAttribPointer(a_Pos, 3, gl.FLOAT, false, 0, 0);
 gl.drawArrays(gl.TRIANGLES, 0, 3);

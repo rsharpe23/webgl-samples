@@ -1,6 +1,5 @@
 // Если нужно, чтобы каждая сторона куба имела отдельный цвет, 
-// тогда вместо 8 вершин нужно задать 24 и столько же цветов. 
-// Затем последовательно отрисовать их, без индексов. 
+// тогда вместо 8 вершин нужно задать 24 и столько же цветов.
 
 const canvas = document.getElementById('canvas');
 const gl = canvas.getContext('webgl');
@@ -46,7 +45,7 @@ gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([
 ]), gl.STATIC_DRAW);
 // ---------------
 
-// Создание буфера цветов
+// Создание цветового буфера
 const colorBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -117,7 +116,6 @@ const u_MVMatrix = gl.getUniformLocation(program, 'u_MVMatrix');
 
   requestAnimationFrame(render);
 })();
-// ---------------
 
 function createProgram(gl) {
   const vertShader = getShaderFromElem(gl, 'shader-vs');

@@ -1,7 +1,3 @@
-// Если нужно, чтобы каждая сторона куба имела отдельный цвет, 
-// тогда вместо 8 вершин нужно задать 24 и столько же цветов. 
-// Затем последовательно отрисовать их, без индексов. 
-
 const canvas = document.getElementById('canvas');
 const gl = canvas.getContext('webgl');
 
@@ -65,7 +61,9 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
 
 // Инициализация данных
 const { width, height } = canvas;
-const { mat4 } = glMatrix;
+const { mat4, vec3, quat } = glMatrix;
+
+let euler = { x: 0.0, y: 0.0 };
 
 const pMatrix = mat4.create();
 const mvMatrix = mat4.create();
@@ -91,10 +89,16 @@ const u_MVMatrix = gl.getUniformLocation(program, 'u_MVMatrix');
   mat4.perspective(pMatrix, 1.04, width / height, 0.1, 100.0);
   mat4.identity(mvMatrix);
 
-  const angle = degToRad(elapsedTime) * 0.06;
-  const x = Math.sin(angle) * 2.2;
-  const y = Math.cos(angle) * 2.2;
-  mat4.lookAt(mvMatrix, [x, 1.25, -y], [0.0, -0.1, 0.0], [0, 1, 0]);
+  const ex = euler.x * 5;
+  const ey = euler.y * 5;
+
+  const eRot = quat.create();
+  quat.fromEuler(eRot, ex, ey, 0.0);
+
+  const eye = vec3.create();
+  vec3.transformQuat(eye, [0.0, 0.0, -3.0], eRot);
+
+  mat4.lookAt(mvMatrix, eye, [0.0, 0.0, 0.0], [0, 1, 0]);
 
   gl.uniformMatrix4fv(u_PMatrix, false, pMatrix);
   gl.uniformMatrix4fv(u_MVMatrix, false, mvMatrix);
@@ -109,7 +113,15 @@ const u_MVMatrix = gl.getUniformLocation(program, 'u_MVMatrix');
 
   requestAnimationFrame(render);
 })();
-// ---------------
+
+document.addEventListener('keydown', e => {
+  switch (e.code) {
+    case 'ArrowUp': euler.x++; break;
+    case 'ArrowDown': euler.x--; break;
+    case 'ArrowRight': euler.y++; break;
+    case 'ArrowLeft': euler.y--; break;
+  }
+});
 
 function createProgram(gl) {
   const vertShader = getShaderFromElem(gl, 'shader-vs');
