@@ -79,7 +79,6 @@ const u_MVMatrix = gl.getUniformLocation(program, 'u_MVMatrix');
 // ---------------
 
 (function render(elapsedTime) {
-
   gl.viewport(0, 0, width, height);
   gl.enable(gl.DEPTH_TEST);
 
@@ -112,7 +111,7 @@ const u_MVMatrix = gl.getUniformLocation(program, 'u_MVMatrix');
   gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
 
   requestAnimationFrame(render);
-})();
+})(0);
 
 document.addEventListener('keydown', e => {
   switch (e.code) {
