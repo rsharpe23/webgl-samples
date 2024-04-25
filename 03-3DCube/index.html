@@ -4,25 +4,38 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simple Triangle</title>
+  <title>3D Cube</title>
+  <link rel="shortcut icon" href="#">
 </head>
 <body>
   <canvas id="canvas" width="640" height="480"></canvas>
 
   <script id="shader-vs" type="x-shader/x-vertex">
-    attribute vec3 a_Pos;
+    attribute vec4 a_Pos;
+    attribute vec4 a_Color;
+    
+    varying highp vec4 v_Color;
+
+    uniform mat4 u_PMatrix;
+    uniform mat4 u_MVMatrix;
+
     void main() {
-      gl_Position = vec4(a_Pos, 1.0);
+      gl_Position = u_PMatrix * u_MVMatrix * a_Pos;
+      v_Color = a_Color;
     }
   </script>
 
   <script id="shader-fs" type="x-shader/x-fragment">
+    varying highp vec4 v_Color;
+
     void main() {
-      gl_FragColor = vec4(0.6, 0.9, 0.3, 1.0);
+      gl_FragColor = v_Color;
     }
   </script>
 
-  <script src="../gl-utils.js"></script>
+  <script src="utils.js"></script>
+  <script src="gl-utils.js"></script>
+  <script src="gl-matrix.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

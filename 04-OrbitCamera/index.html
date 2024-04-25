@@ -4,39 +4,37 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Textured Cube</title>
+  <title>Orbit Camera</title>
+  <link rel="shortcut icon" href="#">
 </head>
 <body>
   <canvas id="canvas" width="640" height="480"></canvas>
-  <img id="texture" src="image.jpg" style="display: none;">
 
   <script id="shader-vs" type="x-shader/x-vertex">
     attribute vec4 a_Pos;
-    attribute vec2 a_TexCoord;
-
+    attribute vec4 a_Color;
+    
     uniform mat4 u_PMatrix;
     uniform mat4 u_MVMatrix;
 
-    varying mediump vec2 v_TexCoord;
+    varying highp vec4 v_Color;
 
     void main() {
       gl_Position = u_PMatrix * u_MVMatrix * a_Pos;
-      v_TexCoord = a_TexCoord;
+      v_Color = a_Color;
     }
   </script>
 
   <script id="shader-fs" type="x-shader/x-fragment">
-    uniform sampler2D u_Sampler;
-    varying mediump vec2 v_TexCoord;
+    varying highp vec4 v_Color;
 
     void main() {
-      gl_FragColor = texture2D(u_Sampler, v_TexCoord);
+      gl_FragColor = v_Color;
     }
   </script>
 
-  <script src="../utils.js"></script>
-  <script src="../gl-utils.js"></script>
-  <script src="../gl-matrix.js"></script>
+  <script src="gl-utils.js"></script>
+  <script src="gl-matrix.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
