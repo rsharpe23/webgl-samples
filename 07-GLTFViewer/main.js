@@ -33,7 +33,7 @@ function render(gltf) {
     NORMAL: gl.getAttribLocation(prog, 'a_Normal'),
   };
 
-
+  console.log(JSON.stringify(gltf.scene, null, 1));
 
   // const a_Pos = gl.getAttribLocation(prog, 'a_Pos');
   // const a_Normal = gl.getAttribLocation(prog, 'a_Normal');
@@ -208,246 +208,111 @@ function createBuffer(target, data) {
 loadGLTF('assets/cube.gltf', render);
 
 function loadGLTF(url, cb) {
-  fetch(url).then(response => response.json())
-    .then(result => {
-      const buffer = result.buffers[0];
-      fetch(buffer.uri).then(res => res.arrayBuffer())
-        .then(b => {
-          result.buffers = [b];
-          cb && cb(new GLTF(result));
+  fetch(url).then(res => res.json())
+    .then(data => {
+      const { uri } = data.buffers[0];
+      fetch(uri).then(res => res.arrayBuffer())
+        .then(buffer => {
+          data.buffers = [buffer];
+          cb && cb(new GLTF(data));
         });
     });
 }
 
-// ---------------
+const typeUtil = {
+  typeMap: {
+    'SCALAR': 1,
+    'VEC2': 2,
+    'VEC3': 3,
+  },
 
-// FIXME: Вместо того, чтобы создавать новые объекты, 
-// можно попробовать переписать существующие объекты в массивах, 
-// и затем просто ссылаться на "переписанные" объекты.
+  getComponentsNum(attrType) {
+    return this.typeMap[attrType];
+  }
+};
+
 class GLTF {
   constructor(data) {
     this.data = data;
   }
 
-  get scenes() {
-    return this.data.scenes;
-  }
-
-  get nodes() {
-    return this.data.nodes;
-  }
-
+  #meshes = null;
   get meshes() {
-    return this.data.meshes;
+    if (!this.#meshes) {
+      const { meshes } = this.data;
+      this.#meshes = meshes.map(mesh => this.#getMesh(mesh));
+    }
+
+    return this.#meshes;
   }
 
-  get accessors() {
-    return this.data.accessors;
-  }
+  #scene = null;
+  get scene() {
+    if (!this.#scene) {
+      const { nodes } = this.data.scenes[this.data.scene];
+      this.#scene = nodes.map(
+        node => this.#getNodeTree(this.data.nodes[node]));
+    }
 
-  get bufferViews() {
-    return this.data.bufferViews;
+    return this.#scene;
   }
 
   get arrayBuffer() {
     return this.data.buffers[0];
   }
 
-  getScene() {
-    const { nodes } = this.scenes[this.data.scene];
-    return nodes.map(node => this.createNode(this.nodes[node]));
+  // --------
+
+  #getMesh({ name, primitives: p }) {
+    const primitives = p.map(item => this.#getMeshPrimitive(item));
+    return { name, primitives };
+  }
+  
+  #getMeshPrimitive({ attributes: a, indices: i }) {
+    const { accessors } = this.data;
+
+    const attrs = Object.entries(a)
+      .reduce((attr, [key, value]) => {
+        attr[key] = this.#getAccessor(accessors[value]);
+        return attr;
+      }, {});
+      
+    const indices = this.#getAccessor(accessors[i]);
+
+    return { attrs, indices };
+  }
+  
+  #getAccessor({ bufferView: b, type, componentType, count }) {
+    const bufferView = this.#getBufferView(this.data.bufferViews[b]);
+    const componentsNum = typeUtil.getComponentsNum(type);
+    return { bufferView, componentType, componentsNum, count };
+  }
+  
+  #getBufferView({ byteOffset, byteLength, target }) {
+    const data = new Uint8Array(this.arrayBuffer, byteOffset, byteLength);
+    return { target, data };
   }
 
-  createNode(info) {
-    const node = this._createNode(info);
+  // ---------
 
-    const { children = null } = info;
+  #getNodeTree(rootNode) {
+    const node = this.#getNode(rootNode);
+
+    const { children } = rootNode;
     if (children && children.length > 0) {
-      node.children = children.map(
-        child => this.createNode(this.nodes[child]));
+      node.children = children.map(child => this.#getNodeTree(child));
     }
 
     return node;
   }
 
-  // FIXME: Вычисление матрицы не входит в обязаность GLTF
-  _createNode({ name, mesh: m, ...rest }) {
-    const mesh = this.createMesh(this.meshes[m]);
-    const matrix = calcMatrix(rest);
+  #getNode({ name, mesh: m, ...rest }) {
+    const mesh = this.meshes[m];
+    const matrix = trsToMatrix(rest);
     return { name, mesh, matrix };
   }
-
-  createMesh({ name, primitives: p }) {
-    const primitives = p.map(info => this.createPrimitive(info));
-    return { name, primitives };
-  }
-
-  createPrimitive({ attributes, indices: i }) {
-    const attrs = this.createAttributes(attributes);
-    const indices = this.createIndices(i);
-    return { attrs, indices };
-  }
-
-  createAttributes(info) {
-    const attrs = {};
-
-    for (const [key, value] of Object.entries(info)) {
-      const { bufferView, componentType, type } = this.accessors[value];
-      const buffer = this.createBuffer(this.bufferViews[bufferView]);
-      const count = getComponentsCount(type);
-      attrs[key] = { buffer, componentType, count };
-    }
-
-    return attrs;
-  }
-
-  createBuffer({ target, byteOffset, byteLength }) {
-    const data = new Uint8Array(
-      this.arrayBuffer, byteOffset, byteLength);
-
-    return { target, data };
-  }
-
-  createIndices(indicesKey) {
-    const { bufferView, componentType, count } = this.accessors[indicesKey];
-    const buffer = this.createBuffer(this.bufferViews[bufferView]);
-    return { buffer, componentType, count };
-  }
 }
 
-function getComponentsCount(attrType) {
-  const typeMap = {
-    'SCALAR': 1,
-    'VEC2': 2,
-    'VEC3': 3,
-  };
-
-  return typeMap[attrType];
+function trsToMatrix(trs) {
+  return [];
 }
-
-// ---------------
-
-// loadGLTF('assets/cube.gltf', render);
-
-// function loadGLTF(url, cb) {
-//   fetch(url).then(response => response.json())
-//     .then(result => {
-//       const buffer = result.buffers[0];
-//       fetch(buffer.uri).then(res => res.arrayBuffer())
-//         .then(b => {
-//           result.arrayBuffer = b;
-//           cb && cb(result);
-//         });
-//     });
-// }
-
-// function getPrimitive({ accessors, indices }, gltf) {
-//   const attrs = getAttributes(accessors, gltf);
-//   const indices = getIndices(indices, gltf);
-//   return { attrs, indices };
-// }
-
-// function getAttributes(attributesInfo, { accessors, bufferViews, arrayBuffer }) {
-//   const attrs = {};
-//   for (const [key, value] of Object.entries(attributesInfo)) {
-//     const { bufferView, componentType, type } = accessors[value];
-//     const buffer = getBuffer(arrayBuffer, bufferViews[bufferView]);
-//     const componentsCount = getComponentsCount(type);
-//     attrs[key] = { buffer, componentType, componentsCount };
-//   }
-//   return attrs;
-// }
-
-// function getIndices(indicesKey, { accessors, bufferViews, arrayBuffer }) {
-//   const { bufferView, componentType, count } = accessors[indicesKey];
-//   const buffer = getBuffer(arrayBuffer, bufferViews[bufferView]);
-//   return { buffer, componentType, count };
-// }
-
-// function getBuffer(arrayBuffer, bufferView, bufferFn) {
-//   const { target, byteOffset, byteLength } = bufferView;
-//   const data = new Uint8Array(arrayBuffer, byteOffset, byteLength);
-//   return bufferFn(target, data);
-// }
-
-// function getComponentsCount(type) {
-//   const typeMap = {
-//     'SCALAR': 1,
-//     'VEC2': 2,
-//     'VEC3': 3,
-//   };
-
-//   return typeMap[type];
-// }
-
-// const nodes = [
-//   {
-//     name: 'Tower',
-//     mesh: meshes[0],
-//     matrix: [],
-//     children: [
-//       {
-//         name: 'Gun',
-//         mesh: meshes[2],
-//         matrix: [],
-//       }
-//     ],
-//   },
-//   {
-//     name: 'Hull',
-//     mesh: meshes[1],
-//     matrix: [],
-//     children: [
-//       {
-//         name: 'Whell.01',
-//         mesh: meshes[3],
-//         matrix: [],
-//       },
-//       {
-//         name: 'Whell.02',
-//         mesh: meshes[3],
-//         matrix: [],
-//       }
-//     ],
-//   }
-// ];
-
-// const node = {
-//   name: 'Tower',
-//   mesh: null,
-//   matrix: [],
-//   children: [],
-// };
-
-// const mesh = {
-//   name: 'Tower',
-//   primitives: []
-// };
-
-// const primitive = {
-//   attrs: {
-//     POSITION: {
-//       buffer: null,
-//       componentType: 0,
-//       componentsCount: 0, 
-//     },
-
-//     NORMAL: {
-//       buffer: null,
-//       componentType: 0,
-//       componentsCount: 0, 
-//     },
-
-//     TEXCOORD_0: {
-//       buffer: null,
-//       componentType: 0,
-//       componentsCount: 0, 
-//     },
-//   },
-
-//   indices: {
-//     buffer: null,
-//     componentType: 0,
-//     count: 0,
-//   },
-// };
