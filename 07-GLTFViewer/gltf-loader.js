@@ -1,95 +1,50 @@
 class GLTF {
-  _meshes = null;
-  _scene = null;
-
-  constructor(data, meshProvider) {
+  constructor(data) {
     this.data = data;
+    this.meshes = MeshList.fromData(data);
+  }
+
+  // getNodeTree(rootNode) {
+  //   const node = this.getNode(rootNode);
+
+  //   const { children } = rootNode;
+  //   if (children && children.length > 0) {
+  //     node.children = children.map(child => this.getNodeTree(child));
+  //   }
+
+  //   return node;
+  // }
+
+  // getNode({ name, mesh: m, ...rest }) {
+  //   const mesh = this.meshes[m];
+  //   const matrix = trsToMatrix(rest);
+  //   return { name, mesh, matrix };
+  // }
+}
+
+class MeshList {
+  constructor(meshes, meshProvider) {
+    this.meshes = meshes;
     this.meshProvider = meshProvider;
   }
 
-  static fromData(data) {
-    return new GLTF(data, new MeshProvider(data));
+  static fromData({ meshes, accessors, bufferViews, buffers }) {
+    const meshProvider = new MeshProvider(accessors, bufferViews, buffers);
+    return Array.from(new MeshList(meshes, meshProvider));
   }
 
-  get meshes() {
-    if (!this._meshes) {
-      this._meshes = getMeshes(this);
+  *[Symbol.iterator]() {
+    for (const mesh of this.meshes) {
+      yield this.meshProvider.getMesh(mesh);
     }
-    return this._meshes;
-  }
-
-  get scene() {
-    if (!this._scene) {
-      const { scenes, scene, nodes } = this.data;
-      this._scene = scenes[scene]
-        .map(node => this.getNodeTree(nodes[node]));
-    }
-
-    return this._scene;
-  }
-
-  // #meshes = null;
-  // get meshes() {
-  //   if (!this.#meshes) {
-  //     const { meshes } = this.data;
-  //     this.#meshes = meshes.map(mesh => this.#getMesh(mesh));
-  //   }
-
-  //   return this.#meshes;
-  // }
-
-  // #scene = null;
-  // get scene() {
-  //   if (!this.#scene) {
-  //     const { nodes } = this.data.scenes[this.data.scene];
-  //     this.#scene = nodes.map(
-  //       node => this.#getNodeTree(this.data.nodes[node]));
-  //   }
-
-  //   return this.#scene;
-  // }
-
-  getMeshes(meshes) {
-    return meshes.map(mesh => this.meshProvider.getMesh(mesh));
-  }
-
-  getScene(nodes) {
-
-  }
-
-  getNodeTree(rootNode) {
-    const node = this.getNode(rootNode);
-
-    const { children } = rootNode;
-    if (children && children.length > 0) {
-      node.children = children.map(child => this.getNodeTree(child));
-    }
-
-    return node;
-  }
-
-  getNode({ name, mesh: m, ...rest }) {
-    const mesh = this.meshes[m];
-    const matrix = trsToMatrix(rest);
-    return { name, mesh, matrix };
   }
 }
 
 class MeshProvider {
-  constructor(data) {
-    this.data = data;
-  }
-
-  get accessors() {
-    return this.data.accessors;
-  }
-
-  get bufferViews() {
-    return this.data.bufferViews;
-  }
-
-  get arrayBuffer() {
-    return this.data.buffers[0];
+  constructor(accessors, bufferViews, buffer) {
+    this.accessors = accessors;
+    this.bufferViews = bufferViews;
+    this.buffer = buffer; 
   }
 
   getMesh({ name, primitives: p }) {
@@ -116,18 +71,14 @@ class MeshProvider {
   }
   
   getBufferView({ byteOffset, byteLength, target }) {
-    const data = new Uint8Array(this.arrayBuffer, byteOffset, byteLength);
+    const data = new Uint8Array(this.buffer, byteOffset, byteLength);
     return { target, data };
   }
 }
 
-function getMeshes({ data, meshProvider }) {
-  return data.meshes.map(mesh => meshProvider.getMesh(mesh));
-}
-
-function getScene({ data, sceneProvider }) {
-  
-}
+// function getScene({ data: { scene, scenes, nodes }, nodeProvider }) {
+//   return scenes[scene].map(node => nodeProvider.getNodeTree(nodes[node]));
+// }
 
 function getComponentsNum(attrType) {
   const typeMap = {
@@ -232,87 +183,3 @@ function loadGLTF(url, cb) {
 //     matrix: [],
 //   }
 // ];
-
-// ----------------
-
-// class GLTF {
-//   constructor(data) {
-//     this.data = data;
-//   }
-
-//   #meshes = null;
-//   get meshes() {
-//     if (!this.#meshes) {
-//       const { meshes } = this.data;
-//       this.#meshes = meshes.map(mesh => this.#getMesh(mesh));
-//     }
-
-//     return this.#meshes;
-//   }
-
-//   #scene = null;
-//   get scene() {
-//     if (!this.#scene) {
-//       const { nodes } = this.data.scenes[this.data.scene];
-//       this.#scene = nodes.map(
-//         node => this.#getNodeTree(this.data.nodes[node]));
-//     }
-
-//     return this.#scene;
-//   }
-
-//   get arrayBuffer() {
-//     return this.data.buffers[0];
-//   }
-
-//   // --------
-
-//   #getMesh({ name, primitives: p }) {
-//     const primitives = p.map(item => this.#getMeshPrimitive(item));
-//     return { name, primitives };
-//   }
-  
-//   #getMeshPrimitive({ attributes: a, indices: i }) {
-//     const { accessors } = this.data;
-
-//     const attrs = Object.entries(a)
-//       .reduce((attr, [key, value]) => {
-//         attr[key] = this.#getAccessor(accessors[value]);
-//         return attr;
-//       }, {});
-      
-//     const indices = this.#getAccessor(accessors[i]);
-
-//     return { attrs, indices };
-//   }
-  
-//   #getAccessor({ bufferView: b, type, componentType, count }) {
-//     const bufferView = this.#getBufferView(this.data.bufferViews[b]);
-//     const componentsNum = typeUtil.getComponentsNum(type);
-//     return { bufferView, componentType, componentsNum, count };
-//   }
-  
-//   #getBufferView({ byteOffset, byteLength, target }) {
-//     const data = new Uint8Array(this.arrayBuffer, byteOffset, byteLength);
-//     return { target, data };
-//   }
-
-//   // ---------
-
-//   #getNodeTree(rootNode) {
-//     const node = this.#getNode(rootNode);
-
-//     const { children } = rootNode;
-//     if (children && children.length > 0) {
-//       node.children = children.map(child => this.#getNodeTree(child));
-//     }
-
-//     return node;
-//   }
-
-//   #getNode({ name, mesh: m, ...rest }) {
-//     const mesh = this.meshes[m];
-//     const matrix = trsToMatrix(rest);
-//     return { name, mesh, matrix };
-//   }
-// }
