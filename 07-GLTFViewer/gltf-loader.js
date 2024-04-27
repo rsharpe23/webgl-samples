@@ -1,120 +1,12 @@
-class GLTF {
-  constructor(data) {
-    this.data = data;
-    this.meshes = MeshList.fromData(data);
-  }
+// Сцена - это ноды в древовидной структуре, т.е. граф.
 
-  // getNodeTree(rootNode) {
-  //   const node = this.getNode(rootNode);
-
-  //   const { children } = rootNode;
-  //   if (children && children.length > 0) {
-  //     node.children = children.map(child => this.getNodeTree(child));
-  //   }
-
-  //   return node;
-  // }
-
-  // getNode({ name, mesh: m, ...rest }) {
-  //   const mesh = this.meshes[m];
-  //   const matrix = trsToMatrix(rest);
-  //   return { name, mesh, matrix };
-  // }
-}
-
-class MeshList {
-  constructor(meshes, meshProvider) {
-    this.meshes = meshes;
-    this.meshProvider = meshProvider;
-  }
-
-  static fromData({ meshes, accessors, bufferViews, buffers }) {
-    const meshProvider = new MeshProvider(accessors, bufferViews, buffers);
-    return Array.from(new MeshList(meshes, meshProvider));
-  }
-
-  *[Symbol.iterator]() {
-    for (const mesh of this.meshes) {
-      yield this.meshProvider.getMesh(mesh);
-    }
-  }
-}
-
-class MeshProvider {
-  constructor(accessors, bufferViews, buffer) {
-    this.accessors = accessors;
-    this.bufferViews = bufferViews;
-    this.buffer = buffer; 
-  }
-
-  getMesh({ name, primitives: p }) {
-    const primitives = p.map(item => this.getMeshPrimitive(item));
-    return { name, primitives };
-  }
-  
-  getMeshPrimitive({ attributes: a, indices: i }) {
-    const attrs = Object.entries(a)
-      .reduce((attr, [key, value]) => {
-        attr[key] = this.getAccessor(this.accessors[value]);
-        return attr;
-      }, {});
-      
-    const indices = this.getAccessor(this.accessors[i]);
-
-    return { attrs, indices };
-  }
-  
-  getAccessor({ bufferView: b, type, componentType, count }) {
-    const bufferView = this.getBufferView(this.bufferViews[b]);
-    const componentsNum = getComponentsNum(type);
-    return { bufferView, componentType, componentsNum, count };
-  }
-  
-  getBufferView({ byteOffset, byteLength, target }) {
-    const data = new Uint8Array(this.buffer, byteOffset, byteLength);
-    return { target, data };
-  }
-}
-
-// function getScene({ data: { scene, scenes, nodes }, nodeProvider }) {
-//   return scenes[scene].map(node => nodeProvider.getNodeTree(nodes[node]));
-// }
-
-function getComponentsNum(attrType) {
-  const typeMap = {
-    'SCALAR': 1,
-    'VEC2': 2,
-    'VEC3': 3,
-  };
-  
-  return typeMap[attrType];
-}
-
-function trsToMatrix(trs) {
-  return [];
-}
-
-function loadGLTF(url, cb) {
-  fetch(url).then(res => res.json())
-    .then(data => {
-      const { uri } = data.buffers[0];
-      fetch(uri).then(res => res.arrayBuffer())
-        .then(buffer => {
-          data.buffers = [buffer];
-          cb && cb(new GLTF(data));
-        });
-    });
-}
+// Main -> WebGLRenderer
+// Scene -> SceneRenderer
 
 // Mesh -> name, primitives
 // Primitive -> attrs (accessors), indices (accessor)
 // Accessor -> bufferView, componentType, componentsNum, count
 // BufferView -> target, data
-
-// Main -> WebGLRenderer
-// Scene -> SceneRenderer
-
-// Сцена - это ноды в древовидной структуре, т.е. граф.
 
 // const meshes = [
 //   {
@@ -183,3 +75,122 @@ function loadGLTF(url, cb) {
 //     matrix: [],
 //   }
 // ];
+
+class GLTF {
+  constructor(data) {
+    this.data = data;
+    this.meshes = MeshList.fromData(data);
+  }
+
+  getScene() {
+    const { scene, scenes, nodes } = this.data;
+    const { nodes: roots } = scenes[scene]; 
+    return roots.map(index => this.getNodeTree(nodes[index]));
+  }
+
+  getNodeTree(root) {
+    const { children } = root;
+    if (children && children.length > 0) {
+      root.children = children.map(
+        index => this.getNodeTree(this.data.nodes[index]));
+    }
+
+    return this.getNode(root);
+  }
+
+  getNode({ mesh: m, ...rest }) {
+    return { ...rest, mesh: this.meshes[m] };
+  }
+}
+
+class MeshList {
+  constructor(meshes, meshProvider) {
+    this.meshes = meshes;
+    this.meshProvider = meshProvider;
+  }
+
+  static fromData({ meshes, accessors, bufferViews, buffers }) {
+    const meshProvider = new MeshProvider(accessors, bufferViews, buffers);
+    return Array.from(new MeshList(meshes, meshProvider));
+  }
+
+  *[Symbol.iterator]() {
+    for (const mesh of this.meshes) {
+      yield this.meshProvider.getMesh(mesh);
+    }
+  }
+}
+
+class MeshProvider {
+  constructor(accessors, bufferViews, buffers) {
+    this.accessors = accessors;
+    this.bufferViews = bufferViews;
+    this.buffers = buffers; 
+  }
+
+  getMesh({ name, primitives: pList }) {
+    const primitives = pList.map(p => this.getMeshPrimitive(p));
+    return { name, primitives };
+  }
+  
+  getMeshPrimitive({ attributes, indices: i }) {
+    const attrs = Object.entries(attributes)
+      .reduce((attr, [key, value]) => {
+        attr[key] = this.getAccessor(this.accessors[value]);
+        return attr;
+      }, {});
+      
+    const indices = this.getAccessor(this.accessors[i]);
+
+    return { attrs, indices };
+  }
+  
+  getAccessor({ bufferView: bv, type, componentType, count }) {
+    const bufferView = this.getBufferView(this.bufferViews[bv]);
+    const componentsNum = getComponentsNum(type);
+    return { bufferView, componentType, componentsNum, count };
+  }
+  
+  getBufferView({ buffer, byteOffset, byteLength, target }) {
+    const data = new Uint8Array(
+      this.buffers[buffer], byteOffset, byteLength);
+
+    return { target, data };
+  }
+}
+
+function getComponentsNum(attrType) {
+  const typeMap = getComponentsNum.typeMap 
+    ||= {
+      'SCALAR': 1,
+      'VEC2': 2,
+      'VEC3': 3,
+    };
+  
+  return typeMap[attrType];
+}
+
+// function trsToMatrix(trs) {
+//   return [];
+// }
+
+// BUG: Все также не работает, если буфер содержит base64
+function loadGLTF(url, cb) {
+  fetch(url).then(res => res.json())
+    .then(data => {
+      const bufferURL = changeFileInURL(url, data.buffers[0]); 
+      fetch(bufferURL).then(res => res.arrayBuffer())
+        .then(buffer => {
+          data.buffers[0] = buffer;
+          cb && cb(new GLTF(data));
+        });
+    });
+}
+
+function changeFileInURL(url, newFile) {
+  return `${getPath(url)}/${newFile.uri ?? newFile}`;
+}
+
+function getPath(url) {
+  return url.split('/').slice(0, -1).join('/');
+}
