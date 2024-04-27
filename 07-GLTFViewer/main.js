@@ -33,7 +33,7 @@ function render(gltf) {
     NORMAL: gl.getAttribLocation(prog, 'a_Normal'),
   };
 
-  console.log(JSON.stringify(gltf.getScene()));
+  
 
   // const a_Pos = gl.getAttribLocation(prog, 'a_Pos');
   // const a_Normal = gl.getAttribLocation(prog, 'a_Normal');
@@ -206,4 +206,4 @@ function createBuffer(target, data) {
 }
 
 window.addEventListener('load', 
-  () => void loadGLTF('assets/tank/tank.gltf', render));
+  () => void loadGLTF('assets/tank', render));

@@ -77,15 +77,20 @@
 // ];
 
 class GLTF {
-  constructor(data) {
+  constructor(data, meshes) {
     this.data = data;
-    this.meshes = MeshList.fromData(data);
+    this.meshes = meshes;
+  }
+
+  static from(data) {
+    const meshes = Array.from(MeshList.from(data));
+    return new GLTF(data, meshes);
   }
 
   getScene() {
     const { scene, scenes, nodes } = this.data;
-    const { nodes: roots } = scenes[scene]; 
-    return roots.map(index => this.getNodeTree(nodes[index]));
+    const { nodes: n } = scenes[scene];
+    return n.map(index => this.getNodeTree(nodes[index]));
   }
 
   getNodeTree(root) {
@@ -109,9 +114,9 @@ class MeshList {
     this.meshProvider = meshProvider;
   }
 
-  static fromData({ meshes, accessors, bufferViews, buffers }) {
+  static from({ meshes, accessors, bufferViews, buffers }) {
     const meshProvider = new MeshProvider(accessors, bufferViews, buffers);
-    return Array.from(new MeshList(meshes, meshProvider));
+    return new MeshList(meshes, meshProvider);
   }
 
   *[Symbol.iterator]() {
@@ -128,8 +133,8 @@ class MeshProvider {
     this.buffers = buffers; 
   }
 
-  getMesh({ name, primitives: pList }) {
-    const primitives = pList.map(p => this.getMeshPrimitive(p));
+  getMesh({ name, primitives: prims }) {
+    const primitives = prims.map(p => this.getMeshPrimitive(p));
     return { name, primitives };
   }
   
@@ -174,23 +179,22 @@ function getComponentsNum(attrType) {
 //   return [];
 // }
 
-// BUG: Все также не работает, если буфер содержит base64
-function loadGLTF(url, cb) {
-  fetch(url).then(res => res.json())
+function loadGLTF(path, cb) {
+  fetch(getURL(path)).then(res => res.json())
     .then(data => {
-      const bufferURL = changeFileInURL(url, data.buffers[0]); 
-      fetch(bufferURL).then(res => res.arrayBuffer())
+      const { uri } = data.buffers[0];
+      fetch(getURL(path, uri)).then(res => res.arrayBuffer())
         .then(buffer => {
           data.buffers[0] = buffer;
-          cb && cb(new GLTF(data));
+          cb && cb(GLTF.from(data));
         });
     });
 }
 
-function changeFileInURL(url, newFile) {
-  return `${getPath(url)}/${newFile.uri ?? newFile}`;
+function getURL(path, file) {
+  return `${path}/${file ?? getFile(path)}`;
 }
 
-function getPath(url) {
-  return url.split('/').slice(0, -1).join('/');
+function getFile(path) {
+  return path.split('/').pop() + '.gltf';
 }
