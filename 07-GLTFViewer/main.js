@@ -7,6 +7,7 @@ const { mat4, mat3 } = glMatrix;
 const prog = createProgram(gl);
 
 function render(gltf) {
+
   // Инициализация
 
   const pMatrix = createMatrix(mat4);
@@ -32,8 +33,6 @@ function render(gltf) {
     POSITION: gl.getAttribLocation(prog, 'a_Pos'),
     NORMAL: gl.getAttribLocation(prog, 'a_Normal'),
   };
-
-  
 
   // const a_Pos = gl.getAttribLocation(prog, 'a_Pos');
   // const a_Normal = gl.getAttribLocation(prog, 'a_Normal');
@@ -205,5 +204,7 @@ function createBuffer(target, data) {
   return buffer;
 }
 
-window.addEventListener('load', 
-  () => void loadGLTF('assets/tank', render));
+window.addEventListener('load', () => {
+  loadGLTF('assets/tank', render);
+  // render();
+});

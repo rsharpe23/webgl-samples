@@ -59,48 +59,91 @@
 // const scene = [
 //   {
 //     name: 'A',
+//     matrix: null,
 //     mesh: meshes[0],
-//     matrix: [],
 //     children: [
 //       {
 //         name: 'C',
 //         mesh: meshes[0],
-//         matrix: [],
+//         matrix: null,
 //       }
 //     ],
 //   },
 //   {
 //     name: 'B',
 //     mesh: meshes[0],
-//     matrix: [],
+//     matrix: null,
+//   }
+// ];
+
+// const sceneAdapter = [
+//   {
+//     name: 'A',
+//     matrix: null,
+//     mesh: [
+//       {
+//         attrs: {
+//           0: {
+//             buffer: null,
+//             componentType: 5126,
+//             numComponents: 3,
+//           },
+//           1: {
+//             buffer: null,
+//             componentType: 5126,
+//             numComponents: 3,
+//           },
+//         },
+//         indices: {
+//           buffer: null,
+//           componentType: 5123,
+//           count: 36,
+//         },
+//       }
+//     ],
+//     children: [],
 //   }
 // ];
 
 class GLTF {
-  constructor(data, meshes) {
+  constructor(data) {
     this.data = data;
-    this.meshes = meshes;
-  }
-
-  static from(data) {
-    const meshes = Array.from(MeshList.from(data));
-    return new GLTF(data, meshes);
   }
 
   getScene() {
-    const { scene, scenes, nodes } = this.data;
-    const { nodes: n } = scenes[scene];
-    return n.map(index => this.getNodeTree(nodes[index]));
+    const { scene, scenes, ...rest } = this.data;
+    return ((s, d) => {
+      const sceneProvider = getSceneProvider(d);
+      return sceneProvider.getScene(s);
+
+    })(scenes[scene], rest); 
+  }
+}
+
+function getSceneProvider({ nodes, meshes, accessors, bufferViews, buffers }) {
+  const meshProvider = new MeshProvider(accessors, bufferViews, buffers);
+  const _meshes = Array.from(new MeshList(meshes, meshProvider));
+  return new SceneProvider(nodes, _meshes);
+}
+
+class SceneProvider {
+  constructor(nodes, meshes) {
+    this.nodes = nodes;
+    this.meshes = meshes;
+  }
+
+  getScene({ nodes }) {
+    return nodes.map(node => this.getNodeTree(node));
   }
 
   getNodeTree(root) {
-    const { children } = root;
-    if (children && children.length > 0) {
-      root.children = children.map(
-        index => this.getNodeTree(this.data.nodes[index]));
-    }
+    return (({ children, ...rest }) => {
+      if (children && children.length > 0) {
+        rest.children = children.map(child => this.getNodeTree(child));
+      }
+      return rest;
 
-    return this.getNode(root);
+    })(this.getNode(this.nodes[root]));
   }
 
   getNode({ mesh: m, ...rest }) {
@@ -112,11 +155,6 @@ class MeshList {
   constructor(meshes, meshProvider) {
     this.meshes = meshes;
     this.meshProvider = meshProvider;
-  }
-
-  static from({ meshes, accessors, bufferViews, buffers }) {
-    const meshProvider = new MeshProvider(accessors, bufferViews, buffers);
-    return new MeshList(meshes, meshProvider);
   }
 
   *[Symbol.iterator]() {
@@ -138,8 +176,8 @@ class MeshProvider {
     return { name, primitives };
   }
   
-  getMeshPrimitive({ attributes, indices: i }) {
-    const attrs = Object.entries(attributes)
+  getMeshPrimitive({ attributes: a, indices: i }) {
+    const attributes = Object.entries(a)
       .reduce((attr, [key, value]) => {
         attr[key] = this.getAccessor(this.accessors[value]);
         return attr;
@@ -147,13 +185,12 @@ class MeshProvider {
       
     const indices = this.getAccessor(this.accessors[i]);
 
-    return { attrs, indices };
+    return { attributes, indices };
   }
   
-  getAccessor({ bufferView: bv, type, componentType, count }) {
+  getAccessor({ bufferView: bv, ...rest }) {
     const bufferView = this.getBufferView(this.bufferViews[bv]);
-    const componentsNum = getComponentsNum(type);
-    return { bufferView, componentType, componentsNum, count };
+    return { ...rest, bufferView };
   }
   
   getBufferView({ buffer, byteOffset, byteLength, target }) {
@@ -164,16 +201,16 @@ class MeshProvider {
   }
 }
 
-function getComponentsNum(attrType) {
-  const typeMap = getComponentsNum.typeMap 
-    ||= {
-      'SCALAR': 1,
-      'VEC2': 2,
-      'VEC3': 3,
-    };
+// function getComponentsNum(attrType) {
+//   const typeMap = getComponentsNum.typeMap 
+//     ||= {
+//       'SCALAR': 1,
+//       'VEC2': 2,
+//       'VEC3': 3,
+//     };
   
-  return typeMap[attrType];
-}
+//   return typeMap[attrType];
+// }
 
 // function trsToMatrix(trs) {
 //   return [];
@@ -186,13 +223,13 @@ function loadGLTF(path, cb) {
       fetch(getURL(path, uri)).then(res => res.arrayBuffer())
         .then(buffer => {
           data.buffers[0] = buffer;
-          cb && cb(GLTF.from(data));
+          cb && cb(new GLTF(data));
         });
     });
 }
 
-function getURL(path, file) {
-  return `${path}/${file ?? getFile(path)}`;
+function getURL(path, file = getFile(path)) {
+  return `${path}/${file}`;
 }
 
 function getFile(path) {
