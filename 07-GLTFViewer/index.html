@@ -54,7 +54,7 @@
     }
 
     vec3 getTransformedPos() {
-      vec4 pos = u_MMatrix * a_Pos;
+      vec4 pos = u_VMatrix * u_MMatrix * a_Pos;
       return pos.xyz / pos.w; 
     }
 

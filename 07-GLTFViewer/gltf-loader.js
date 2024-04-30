@@ -5,7 +5,7 @@
 
 // Mesh -> name, primitives
 // Primitive -> attrs (accessors), indices (accessor)
-// Accessor -> bufferView, componentType, componentsNum, count
+// Accessor -> bufferView, type componentType, count
 // BufferView -> target, data
 
 // const meshes = [
@@ -20,7 +20,7 @@
 //               data: null 
 //             },
 //             componentType: 5126,
-//             componentsNum: 3,
+//             type: 'VEC3',
 //             count: 24,
 //           },
 //           NORMAL: {
@@ -29,7 +29,7 @@
 //               data: null 
 //             },
 //             componentType: 5126,
-//             componentsNum: 3,
+//             type: 'VEC3',
 //             count: 24,
 //           },
 //           TEXCOORD_0: {
@@ -38,7 +38,7 @@
 //               data: null 
 //             },
 //             componentType: 5126,
-//             componentsNum: 2,
+//             type: 'VEC2',
 //             count: 24,
 //           },
 //         },
@@ -48,7 +48,7 @@
 //             data: null 
 //           },
 //           componentType: 5123,
-//           componentsNum: 1,
+//           type: 'SCALAR',
 //           count: 36,
 //         },
 //       }
@@ -73,35 +73,6 @@
 //     name: 'B',
 //     mesh: meshes[0],
 //     matrix: null,
-//   }
-// ];
-
-// const sceneAdapter = [
-//   {
-//     name: 'A',
-//     matrix: null,
-//     mesh: [
-//       {
-//         attrs: {
-//           0: {
-//             buffer: null,
-//             componentType: 5126,
-//             numComponents: 3,
-//           },
-//           1: {
-//             buffer: null,
-//             componentType: 5126,
-//             numComponents: 3,
-//           },
-//         },
-//         indices: {
-//           buffer: null,
-//           componentType: 5123,
-//           count: 36,
-//         },
-//       }
-//     ],
-//     children: [],
 //   }
 // ];
 
@@ -200,21 +171,6 @@ class MeshProvider {
     return { target, data };
   }
 }
-
-// function getComponentsNum(attrType) {
-//   const typeMap = getComponentsNum.typeMap 
-//     ||= {
-//       'SCALAR': 1,
-//       'VEC2': 2,
-//       'VEC3': 3,
-//     };
-  
-//   return typeMap[attrType];
-// }
-
-// function trsToMatrix(trs) {
-//   return [];
-// }
 
 function loadGLTF(path, cb) {
   fetch(getURL(path)).then(res => res.json())
