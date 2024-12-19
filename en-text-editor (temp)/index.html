@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>En Text Editor</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="shortcut icon" href="#">
+</head>
+<body>
+  <div class="container">
+    <div class="tools-panel">
+      <div class="controls">
+        <button id="new_file">Новый перевод</button>
+        <button id="save_file">Сохранить</button>
+        <button id="export_file">Экспорт</button>
+        <button id="import_file">Импорт</button>
+      </div>
+
+      <ul class="tools" data-item="tool">
+        <li class="tool red" data-tag="font" data-command="foreColor">R</li>
+        <li class="tool bold" data-tag="b" data-command="bold">B</li>
+        <li class="tool italic" data-tag="i" data-command="italic">I</li>
+        <li class="tool strike-through" data-tag="strike" data-command="strikeThrough">&nbspS&nbsp</li>
+        <li class="tool marked" data-tag="span" data-command="backColor">M</li>
+      </ul>
+
+      <div class="controls">
+        <button id="dictionary">Словарь</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="block">
+        <div class="header">
+          <h3 class="title">Перевод</h3>
+          <button class="btn">&#10226;</button>
+        </div>
+        <div class="content">
+          Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации "Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст.." Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию, так что поиск по ключевым словам "lorem ipsum" сразу показывает, как много веб-страниц всё ещё дожидаются своего настоящего рождения. За прошедшие годы текст Lorem Ipsum получил много версий. Некоторые версии появились по ошибке, некоторые - намеренно (например, юмористические варианты).
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="header">
+          <h3 class="title">Оригинал</h3>
+          <button class="btn">&#10226;</button>
+        </div>
+        <div class="content">
+          Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации "Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст.." Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию, так что поиск по ключевым словам "lorem ipsum" сразу показывает, как много веб-страниц всё ещё дожидаются своего настоящего рождения. За прошедшие годы текст Lorem Ipsum получил много версий. Некоторые версии появились по ошибке, некоторые - намеренно (например, юмористические варианты).
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="./main.js"></script>
+</body>
+</html>

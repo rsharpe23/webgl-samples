@@ -2,7 +2,7 @@ const canvas = document.getElementById('canvas');
 const gl = canvas.getContext('webgl');
 
 const { width, height } = canvas;
-const { mat4, mat3 } = glMatrix;
+const { mat4, mat3, quat, vec3 } = glMatrix;
 
 const matrixStack = {
   items: [],
@@ -22,17 +22,23 @@ const matrixStack = {
 
 const prog = createProgram(gl);
 
-function render(gltf) {
+window.addEventListener('load', () => {
+  loadGLTF('assets/tank', render);
+});
 
+function render(gltf) {
   const pMatrix = createMatrix(mat4);
   const vMatrix = createMatrix(mat4);
-  const mMatrix = createMatrix(mat4);
-  const nMatrix = createMatrix(mat3);
+  // const mMatrix = createMatrix(mat4);
+  // const nMatrix = createMatrix(mat3);
+  const nMatrix = createMatrix(mat4);
+  const mvMatrix = createMatrix(mat4);
 
   const u_PMatrix = gl.getUniformLocation(prog, 'u_PMatrix');
-  const u_VMatrix = gl.getUniformLocation(prog, 'u_VMatrix');
-  const u_MMatrix = gl.getUniformLocation(prog, 'u_MMatrix');
+  // const u_VMatrix = gl.getUniformLocation(prog, 'u_VMatrix');
+  // const u_MMatrix = gl.getUniformLocation(prog, 'u_MMatrix');
   const u_NMatrix = gl.getUniformLocation(prog, 'u_NMatrix');
+  const u_MVMatrix = gl.getUniformLocation(prog, 'u_MVMatrix');
 
   const u_AmbientLightColor = gl.getUniformLocation(prog, 'u_AmbientLightColor');
   const u_DiffuseLightColor = gl.getUniformLocation(prog, 'u_DiffuseLightColor');
@@ -76,29 +82,42 @@ function render(gltf) {
   mat4.perspective(pMatrix, 1.04, width / height, 0.1, 100.0);
   gl.uniformMatrix4fv(u_PMatrix, false, pMatrix);
 
-  mat4.lookAt(vMatrix, [3.0, 5.0, 7.0], [0.0, 0.0, 0.0], [0, 1, 0]);
-  gl.uniformMatrix4fv(u_VMatrix, false, vMatrix);
+  // const rot = quat.create();
+  // quat.fromEuler(rot, 20.0, 180.0, 0.0);
+  // const eye = vec3.create();
+  // vec3.transformQuat(eye, [0.0, 0.0, -8.0], rot);
+
+  mat4.lookAt(vMatrix, [10.0, 0.0, 10.0], [0.0, 0.0, 0.0], [0, 1, 0]);
+  // gl.uniformMatrix4fv(u_VMatrix, false, vMatrix);
+
+  mat4.multiply(mvMatrix, mvMatrix, vMatrix);
 
   gl.uniform3fv(u_AmbientLightColor, [0.3, 0.3, 0.3]);
   gl.uniform3fv(u_DiffuseLightColor, [0.7, 0.7, 0.7]);
   gl.uniform3fv(u_SpecularLightColor, [1.0, 1.0, 1.0]);
-  gl.uniform3fv(u_LightPos, [0.0, 50.0, 100.0]);
+  gl.uniform3fv(u_LightPos, [0.0, 100.0, 0.0]);
 
   gl.uniform3fv(u_AmbientMaterialColor, [0.6, 0.9, 0.3]);
   gl.uniform3fv(u_DiffuseMaterialColor, [0.7, 0.7, 0.7]);
   gl.uniform3fv(u_SpecularMaterialColor, [1.0, 1.0, 1.0]);
 
   traverse(scene, ({ translation, rotation, mesh }) => {
-    translation && mat4.translate(mMatrix, mMatrix, translation);
+    translation && mat4.translate(mvMatrix, mvMatrix, translation);
     if (rotation) {
       const [x, y, z, w] = rotation;
       const angle = Math.acos(w) * 2; // w - это косинус половины угла
-      mat4.rotate(mMatrix, mMatrix, angle, [x, y, z]);
+      mat4.rotate(mvMatrix, mvMatrix, angle, [x, y, z]);
     }
-    gl.uniformMatrix4fv(u_MMatrix, false, mMatrix);
+    gl.uniformMatrix4fv(u_MVMatrix, false, mvMatrix);
 
-    mat3.normalFromMat4(nMatrix, mMatrix);
-    gl.uniformMatrix3fv(u_NMatrix, false, nMatrix);
+    const invertMatrix = mat4.create();
+    mat4.invert(invertMatrix, mvMatrix);
+    mat4.transpose(nMatrix, invertMatrix);
+    gl.uniformMatrix4fv(u_NMatrix, false, nMatrix);
+
+    // mat4.mul(mvMatrix, vMatrix, mMatrix);
+    // mat3.normalFromMat4(nMatrix, mvMatrix);
+    // gl.uniformMatrix3fv(u_NMatrix, false, nMatrix);
 
     for (const { attributes, indices } of mesh.primitives) {
       for (const [key, value] of Object.entries(attrs)) {
@@ -114,9 +133,9 @@ function render(gltf) {
     }
   }, fn => {
     return node => {
-      matrixStack.push(mMatrix);
+      matrixStack.push(mvMatrix);
       fn.call(null, node);
-      matrixStack.pop(mMatrix);
+      matrixStack.pop(mvMatrix);
     };
   });
 }
@@ -163,6 +182,6 @@ function getNumberOfComponents(attrType) {
   return typeMap[attrType];
 }
 
-window.addEventListener('load', () => {
-  loadGLTF('assets/tank', render);
-});
+function degToRad(angle) {
+  return angle * Math.PI / 180;
+}
