@@ -1,24 +1,12 @@
-// elem.addEventListener('click', e => {
-//   const itemElem = e.target;
+// String.prototype.capitalize = function () {
+//   return this.charAt(0).toUpperCase() + this.slice(1);
+// };
 
-//   if (!itemElem) return;
-
-//   const { classList } = itemElem;
-//   if (classList.contains('active')) return;
-
-//   const itemElems = elem.querySelectorAll('.item');
-//   itemElems.forEach(el => el.classList.remove('active'));
-
-//   classList.add('active');
-// });
-
-// ------------------
-
-// HTMLElement.prototype.$hasClass = function (className) {
+// HTMLElement.prototype.hasClass = function (className) {
 //   return this.classList.contains(className);
 // };
 
-HTMLElement.prototype.$setStateAttr = function (attr, state) {
+HTMLElement.prototype.setStateAttr = function (attr, state) {
   if (state) 
     this.setAttribute(attr, '');
   else
@@ -69,25 +57,21 @@ const selectionUtil = {
 
     return selectionUtil.getParentTags(parentNode, breakTag, initialList);
   },
+
+  hasSelectionText() {
+    const selection = window.getSelection();
+    return !selection.isCollapsed;
+  }
 };
 
 const widget = {
   Widget: class {
-    lockEvents = false;
+    constructor(elem) { this.elem = elem; }
 
-    constructor(elem) {
-      this.elem = elem;
-      // TODO: Добавить прослушку всех событий элемента и перенаправление их 
-      // на абстрактные сигналы виджета. Также добавить проверку 
-      // для блокировки и разблокировки событий
-    }
-
-    get dataset() {
-      return this.elem.dataset;
-    }
+    get dataset() { return this.elem.dataset; }
 
     addEventListener(type, listener) {
-      this.elem.addEventListener(widget.getEventType(type), listener);
+      this.elem.addEventListener(type, listener);
     }
 
     dispatchEvent(event) {
@@ -102,27 +86,22 @@ const widget = {
 
   Event: class extends CustomEvent {
     constructor(type, data, wgt) {
-      const detail = { ...data, wgt };
-      super(widget.getEventType(type), { detail });
+      super(`wgt_${type}`, { detail: { ...data, wgt } });
     }
   },
-
-  getEventType(rawType) { return `wgt_${rawType}`; }
 };
 
 widget.CheckBox = class extends widget.Widget {
   constructor(elem) {
     super(elem);
-    elem.addEventListener('click', e => {
-      this.toggleItem(e.target);
-    });
+    this.addEventListener('click', e => this.toggleItem(e.target));
   }
-
-  get itemClass() { return this.dataset.item; }
 
   get items() {
     return this._items ??= this.elem.getElementsByClassName(this.itemClass);
   }
+
+  get itemClass() { return this.dataset.item; }
 
   toggleItem(item) {
     this.toggleItemRaw(item, isActive => this.onItemToggle(item, isActive));
@@ -144,11 +123,12 @@ widget.CheckBox = class extends widget.Widget {
 };
 
 const app = {
+
   Content: class extends widget.Widget {
     constructor(elem) {
       super(elem);
 
-      elem.addEventListener('mousedown', e => {
+      this.addEventListener('mousedown', e => {
         // HACK: Удаляем старое выделене от двойного щелчка, т.к. если кликнуть 
         // по нему заново, то getTagsOfSelectionText() вернет пустой массив.
         if (e.detail === 1 && this.isEditable()) {
@@ -163,10 +143,9 @@ const app = {
         }
       });
 
-      elem.addEventListener('mouseup', e => {
-        if (e.detail === 1 && this.isEditable()) {
+      this.addEventListener('mouseup', e => {
+        if (e.detail === 1 && this.isEditable())
           this.onSelection(selectionUtil.getTagsOfSelectionText());
-        }
       });
     }
 
@@ -176,7 +155,7 @@ const app = {
     }
 
     setEditable(value) {
-      this.elem.$setStateAttr('contenteditable', value);
+      this.elem.setStateAttr('contenteditable', value);
     }
 
     isEditable() {
@@ -204,7 +183,7 @@ const app = {
     const [toolsWgt] = widget.CheckBox.init('.tools');
     const contents = app.Content.init('.content');
 
-    toolsWgt.addEventListener('itemtoggle', e => {
+    toolsWgt.addEventListener('wgt_itemtoggle', e => {
       const { item, isActive } = e.detail;
       const { command } = item.dataset;
       const [val1, val2] = app.commandMap[command];
@@ -212,7 +191,7 @@ const app = {
     });
 
     for (const cnt of contents) {
-      cnt.addEventListener('selection', e => {
+      cnt.addEventListener('wgt_selection', e => {
         const { textTags } = e.detail;
         toolsWgt.resetItems();
         for (const item of toolsWgt.items) {
@@ -220,17 +199,6 @@ const app = {
           if (textTags.some(t => t === tag))
             toolsWgt.toggleItemRaw(item, () => {});
         }
-      });
-
-      // TODO: убрать elem (см. конструктор CheckBox)
-
-      cnt.elem.addEventListener('focus', () => {
-        toolsWgt.lockEvents = false;
-      });
-
-      cnt.elem.addEventListener('blur', () => {
-        toolsWgt.resetItems();
-        toolsWgt.lockEvents = true;
       });
     }
 
@@ -249,6 +217,12 @@ const app = {
         }
       }
     }, { capture: true });
+
+
+    document.addEventListener('click', e => {
+      // if (selectionUtil.hasSelectionText())
+    });
+
   },
 };
 
