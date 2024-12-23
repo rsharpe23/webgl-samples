@@ -45,7 +45,6 @@ p + p {
 }
 
 .tool {
-  cursor: default;
   border: 1px solid #444;
   border-radius: 4px;
   text-align: center;
@@ -127,7 +126,7 @@ p + p {
   margin-right: -0.5rem;
 }
 
-.block {
+.text-block {
   width: 50%;
   background-color: #efefef;
   border: 1px solid #444;
@@ -135,7 +134,7 @@ p + p {
   margin: 1rem 0.5rem;
 }
 
-.block:has(>.content[contenteditable="true"]) {
+.text-block:has(>.content[contenteditable="true"]) {
   border-color: blue !important;
 }
 
