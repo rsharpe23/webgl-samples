@@ -87,7 +87,9 @@ const selectionUtil = {
   getParentTags({ localName, parentNode }, contentTag, initialList = []) {
     // Св-во localName - это название тега в нижнем регистре 
     if (localName) {
-      if (localName === contentTag) return initialList;
+      if (localName === contentTag) 
+        return initialList;
+        
       initialList.push(localName);
     }
 
@@ -145,11 +147,8 @@ widget.CheckBox = class extends widget.Widget {
   get itemClass() { return this.dataset.item; }
 
   toggleItem(item) {
-    this.onItemToggle(item, item.toggleClass('active'));
-  }
-
-  onItemToggle(item, isActive) {
-    this.dispatchEvent(new widget.Event('itemtoggle', { item, isActive, wgt: this }));
+    const isActive = item.toggleClass('active');
+    this.dispatchEvent(new widget.Event('itemtoggle', { item, isActive }));
   }
 
   resetItems() {
@@ -196,6 +195,7 @@ const app = {
 
     setEditable(value) {
       this.elem.setBoolAttribute('contenteditable', value);
+      this.dispatchEvent(new widget.Event('editable', { value }));
     }
 
     isEditable() {
@@ -203,11 +203,8 @@ const app = {
     }
 
     selectText() {
-      this.onTextSelect(selectionUtil.getTagsOfSelectionText());
-    }
-
-    onTextSelect(textTags) {
-      this.dispatchEvent(new widget.Event('textselect', { textTags, wgt: this }));
+      const textTags = selectionUtil.getTagsOfSelectionText();
+      this.dispatchEvent(new widget.Event('textselect', { textTags }));
     }
   },
 
@@ -222,6 +219,8 @@ const app = {
   init() {
     const [toolsCheckBox] = widget.CheckBox.init('.tools');
     const contents = app.Content.init('.content');
+
+    // TODO: Блокировать toolsCheckBox пока одно из полей контента не станет активным
 
     toolsCheckBox.addEventListener('wgt_itemtoggle', e => {
       const { item, isActive } = e.detail;
@@ -241,12 +240,11 @@ const app = {
     }
 
     // ToolsCheckBox иногда мерцает при выделениях именно из-за этого события.
-    // document.addEventListener('selectionchange', () => {
-    //   if (!selectionUtil.hasSelectionText())
-    //     toolsCheckBox.resetItems();
-    // });
-
-    // TODO: Блокировать toolsCheckBox пока одно из полей контента не станет активным
+    // При клике на ЛКМ toolsCheckBox очищается, а при отпускании снова заполняется
+    document.addEventListener('selectionchange', () => {
+      if (!selectionUtil.hasSelectionText())
+        toolsCheckBox.resetItems();
+    });
 
     // Перехватываем события на этапе "погружения", чтобы обработать их первее
     document.addEventListener('mousedown', e => {
