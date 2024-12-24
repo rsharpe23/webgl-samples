@@ -134,8 +134,8 @@ p + p {
   margin: 1rem 0.5rem;
 }
 
-.text-block.active {
-  border-color: red;
+.text-block:has(>.content[contenteditable="true"]) {
+  border-color: blue !important;
 }
 
 .header {

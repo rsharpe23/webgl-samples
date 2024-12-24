@@ -1,11 +1,7 @@
 Object.defineProperties(Node.prototype, {
   textLength: {
-    get() { return this.textContent.length; }
+    get: function () { return this.textContent.length; }
   },
-
-  isTextNode: {
-    get() { return this.nodeType === Node.TEXT_NODE; } 
-  }
 });
 
 Object.assign(HTMLElement.prototype, {
@@ -31,10 +27,6 @@ Object.assign(HTMLElement.prototype, {
     else
       this.removeAttribute(attr);
   }, 
-
-  setActiveClass(value) {
-    this[value ? 'addClass' : 'removeClass']('active');
-  },
 });
 
 const selectionUtil = {
@@ -112,10 +104,7 @@ const selectionUtil = {
 
 const widget = {
   Widget: class {
-    constructor(elem, opts = {}) { 
-      this.elem = elem; 
-      this.opts = opts;
-    }
+    constructor(elem) { this.elem = elem; }
 
     get dataset() { return this.elem.dataset; }
 
@@ -127,9 +116,9 @@ const widget = {
       this.elem.dispatchEvent(event);
     }
 
-    static init(selector, opts) {
+    static init(selector) {
       return [].map.call(document.querySelectorAll(selector), 
-        elem => new this(elem, opts));
+        elem => new this(elem));
     }
   },
 
@@ -141,8 +130,8 @@ const widget = {
 };
 
 widget.CheckBox = class extends widget.Widget {
-  constructor(elem, opts) {
-    super(elem, opts);
+  constructor(elem) {
+    super(elem);
 
     this.addEventListener('click', e => {
       const item = e.target;
@@ -172,68 +161,41 @@ widget.CheckBox = class extends widget.Widget {
 
 const app = {
 
-  ToolsCheckBox: class extends widget.CheckBox {
-    canToggle = false;
-
-    commandMap = {
-      'foreColor': ['red', 'black'],
-      'bold': ['on', 'off'],
-      'italic': ['on', 'off'],
-      'strikeThrough': ['on', 'off'],
-      'backColor': ['yellow', 'white'],
-    }
-
-    constructor(elem, opts) {
-      super(elem, opts);
-
-      this.addEventListener('wgt_itemtoggle', e => {
-        const { item, isActive } = e.detail;
-        const { command } = item.dataset;
-        const [val1, val2] = this.commandMap[command];
-        this.onToolExec(command, isActive ? val1 : val2);
-      });
-    }
-
-    onToolExec(command, value) {
-      this.dispatchEvent(new widget.Event('toolexec', { command, value }));
-    }
-
-    toggleItem(item) {
-      if (!this.canToggle) return;
-      super.toggleItem(item);
-    }
-  },
-
   Content: class extends widget.Widget {
-    constructor(elem, opts) {
-      super(elem, opts);
+    constructor(elem) {
+      super(elem);
 
       this.addEventListener('mousedown', e => {
+        // HACK: Удаляем старое выделене от двойного щелчка, т.к. если кликнуть 
+        // по нему заново, то getTagsOfSelectionText() вернет пустой массив.
+        if (e.detail === 1 && this.isEditable()) {
+          const selection = document.getSelection();
+          if (!selection.isCollapsed) 
+            selection.removeAllRanges();
+        }
+
         if (e.detail === 2 && !this.isEditable()) {
-          e.preventDefault(); // Предотвращаем выделение
+          e.preventDefault(); // Предотвращаем лишнее выделение
           this.activate();
           this.selectText();
         }
       });
 
-      this.addEventListener('mouseup', () => {
-        if (this.isEditable()) this.selectText();
+      this.addEventListener('mouseup', e => {
+        if (!this.isEditable()) return;
+        if (e.detail === 1 || e.detail === 2)
+          this.selectText();
       });
-    }
-
-    get container() {
-      return this._container ??= this.elem.closest(this.opts.container);
     }
 
     activate() {
       this.setEditable(true);
       this.elem.focus();
-      this.dispatchEvent(new widget.Event('active'));
     }
 
     setEditable(value) {
       this.elem.setBoolAttribute('contenteditable', value);
-      this.container.setActiveClass(value);
+      this.dispatchEvent(new widget.Event('editable', { value }));
     }
 
     isEditable() {
@@ -242,63 +204,65 @@ const app = {
 
     selectText() {
       const textTags = selectionUtil.getTagsOfSelectionText();
-      this.dispatchEvent(new widget.Event('textselect', textTags));
+      this.dispatchEvent(new widget.Event('textselect', { textTags }));
     }
   },
 
+  commandMap: {
+    'foreColor': ['red', 'black'],
+    'bold': ['on', 'off'],
+    'italic': ['on', 'off'],
+    'strikeThrough': ['on', 'off'],
+    'backColor': ['yellow', 'white'],
+  },
+
   init() {
-    const [toolsCheckBox] = app.ToolsCheckBox.init('.tools');
-    const contents = app.Content.init('.content', { 
-      container: '.text-block' 
+    const [toolsCheckBox] = widget.CheckBox.init('.tools');
+    const contents = app.Content.init('.content');
+
+    // TODO: Блокировать toolsCheckBox пока одно из полей контента не станет активным
+
+    toolsCheckBox.addEventListener('wgt_itemtoggle', e => {
+      const { item, isActive } = e.detail;
+      const { command } = item.dataset;
+      const [val1, val2] = app.commandMap[command];
+      app.execCommand(command, isActive ? val1 : val2);
     });
 
-    toolsCheckBox.addEventListener('wgt_toolexec', e => {
-      const { command, value } = e.detail;
-      app.execCommand(command, value);
-    });
-
-    for (const content of contents) {
-      content.addEventListener('focusin', () => {
-        toolsCheckBox.canToggle = true;
-      });
-
-      content.addEventListener('focusout', e => {
-        const canStayInFocus = initiator => {
-          if (initiator.isTextNode) 
-            initiator = initiator.parentNode;
-          return !!initiator.closest('.tool, button');
-        };
-
-        if (canStayInFocus(e.explicitOriginalTarget)) {
-          // В текущем потоке не получится установить фокус
-          setTimeout(() => e.target.focus());
-          return;
-        }
-
-        toolsCheckBox.resetItems();
-        toolsCheckBox.canToggle = false;
-      });
-
-      content.addEventListener('wgt_active', e => {
-        const cnt = contents.find(c => c.elem !== e.target);
-        if (cnt) cnt.setEditable(false);
-      });
-
-      content.addEventListener('wgt_textselect', e => {
+    for (const cnt of contents) {
+      cnt.addEventListener('wgt_textselect', e => {
         toolsCheckBox.resetItems();
         for (const item of toolsCheckBox.items) {
-          if (e.detail.some(tag => tag === item.dataset.tag))
+          if (e.detail.textTags.some(tag => tag === item.dataset.tag))
             widget.CheckBox.checkItem(item);
         }
       });
     }
 
-    document.addEventListener('mousedown', e => {
-      if (e.detail < 2) return;
-      if (e.target.closest('.content, .tool, button')) return;
-      contents.filter(cnt => cnt.isEditable())
-        .forEach(cnt => cnt.setEditable(false));
+    // ToolsCheckBox иногда мерцает при выделениях именно из-за этого события.
+    // При клике на ЛКМ toolsCheckBox очищается, а при отпускании снова заполняется
+    document.addEventListener('selectionchange', () => {
+      if (!selectionUtil.hasSelectionText())
+        toolsCheckBox.resetItems();
     });
+
+    // Перехватываем события на этапе "погружения", чтобы обработать их первее
+    document.addEventListener('mousedown', e => {
+      if (e.detail === 2) {
+        // Выбираем ближейшего предка т.к. при стилизации ноды разбиваются на сабноды
+        const elem = e.target.closest('.content');
+
+        if (!elem) return;
+
+        for (const cnt of contents) {
+          // Пропускаем поле, иначе не будет выделяться текст в режиме редактирования
+          if (cnt.elem === elem && cnt.isEditable()) 
+            continue;
+          else
+            cnt.setEditable(false);
+        }
+      }
+    }, { capture: true });
   },
 
   execCommand(commandId, value) {
