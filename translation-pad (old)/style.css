@@ -1,0 +1,171 @@
+/* RESET */
+
+*, 
+::after, 
+::before {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+p + p {
+  margin-top: 0.8rem;
+}
+
+/**/
+
+.container {
+  position: relative;
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.controls {
+  padding: 0.7rem;
+}
+
+.tools {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  display: inline-flex;
+}
+
+.tool {
+  border: 1px solid #444;
+  border-radius: 4px;
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+  background-color: #fff;
+  user-select: none;
+}
+
+.tool:hover {
+  background-color: #efefef;
+}
+
+.tool.active {
+  background-color: #c9c9c9;
+}
+
+.tool + .tool {
+  margin-left: 0.3rem;
+}
+
+.tool.strike-through {
+  text-decoration: line-through;
+}
+
+.tool.red {
+  color: red;
+}
+
+.tool.italic {
+  font-style: italic;
+}
+
+.tool.marked {
+  background-color: yellow;
+}
+
+.tool.marked:hover {
+  filter: brightness(90%);
+}
+
+.tool.marked.active {
+  filter: brightness(75%);
+}
+
+.tool.bold {
+  font-weight: bold;
+}
+
+.tools-panel {
+  position: sticky;
+  top: 0; /* Для sticky нужно задать хотябы одно из свойств: top, left и др. */
+  border: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+}
+
+.tools-panel .tools {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tools-panel .tool {
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  line-height: 26px;
+}
+
+.tools-panel .tool.italic {
+  padding-right: 2px;
+}
+
+.main {
+  display: flex;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+}
+
+.text-block {
+  width: 50%;
+  background-color: #efefef;
+  border: 1px solid #444;
+  padding: 1rem;
+  margin: 1rem 0.5rem;
+}
+
+.text-block:has(>.content[contenteditable="true"]) {
+  border-color: blue !important;
+}
+
+.header {
+  display: flex;
+  margin-bottom: 0.8rem;
+}
+
+.header .title {
+  line-height: 26px;
+  margin-left: 0.25rem;
+}
+
+.header .btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  font-size: 20px;
+  padding-right: 2px;
+  margin-left: 0.5rem;
+}
+
+.content {
+  background-color: #fff;
+  padding: 1rem;
+  outline: none;
+  min-height: 35px;
+  cursor: default;
+}
+
+.content[contenteditable] {
+  cursor: text;
+}

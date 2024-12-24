@@ -1,6 +1,8 @@
-// String.prototype.capitalize = function () {
-//   return this.charAt(0).toUpperCase() + this.slice(1);
-// };
+Object.defineProperties(Node.prototype, {
+  textLength: {
+    get: function () { return this.textContent.length; }
+  },
+});
 
 Object.assign(HTMLElement.prototype, {
   addClass(className) {
@@ -27,217 +29,95 @@ Object.assign(HTMLElement.prototype, {
   }, 
 });
 
-// const selectionUtil = {
-//   getTagsOfSelectionText() {
-//     const selection = document.getSelection();
-//     if (selection.rangeCount > 1) return [];
-//     return selectionUtil.getContainerTags(selection);
-//   },
-
-//   getContainerTags(selection) {
-//     const container = selectionUtil.getContainer(selection);
-//     if (!container) return [];
-//     return selectionUtil.getParentTags(container, 'div');
-//   },
-
-//   getContainer(selection) {
-//     // Если взять обычный startContainer или endContainer, то все будет работать, но
-//     // через раз, т.к. иногда выделение прихватывает для одного из контейнеров соседние ноды.
-//     // Поэтому, правильные условия для нужного контейнера будут такими:
-
-//     // startContainer === endContainer -> startContainer
-//     // startContainer.textContent === selection.toString() -> startContainer
-//     // endContainer.textContent === selection.toString() -> endContainer
-
-//     const { startContainer, endContainer } = selection.getRangeAt(0);
-
-//     if (startContainer === endContainer)
-//       return startContainer;
-
-//     switch (selection.toString()) {
-//       case startContainer.textContent: return startContainer;
-//       case endContainer.textContent: return endContainer;
-//     }
-
-//     return null;
-//   },
-
-//   getParentTags({ localName, parentNode }, breakTag, initialList = []) {
-//     // Св-во localName - это название тега в нижнем регистре 
-//     if (localName) {
-//       if (localName === breakTag) return initialList;
-//       initialList.push(localName);
-//     }
-
-//     return selectionUtil.getParentTags(parentNode, breakTag, initialList);
-//   },
-
-//   hasSelectionText() {
-//     const selection = document.getSelection();
-//     return !selection.isCollapsed;
-//   }
-// };
-
 const selectionUtil = {
   getTagsOfSelectionText() {
-    this.temp();
-    return [];
+    const selection = document.getSelection();
+    if (selection.rangeCount > 1) return [];
+    return selectionUtil.getContainerTags(selection);
   },
 
-  temp() {
-    const selection = document.getSelection();
-    const range = selection.getRangeAt(0);
+  getContainerTags(selection) {
+    const container = selectionUtil.getContainer(selection);
+    return selectionUtil.getParentTags(container, 'div');
+  },
 
+  // При выделении текста, если захватить немного больше текста чем нужно, а затем 
+  // вернуть назад, не отпуская ЛКМ, то в выделение попадет мусорный нод (без текста), 
+  // из-за которого получается неправильный диапазон.
+  getContainer: Object.assign(function f(selection) {
     let { startContainer, startOffset, endContainer, endOffset, 
-      commonAncestorContainer } = range;
-
-    const isTextNode = ({ nodeType }) => nodeType === Node.TEXT_NODE;
-
-    // Получает самый верхний узел, чтобы его можно было найти 
-    // среди дочерних commonAncestorContainer
-    const fn = (node, breakNode) => {
-      const { parentNode } = node;
-      if (parentNode === breakNode) return node;
-      return fn(parentNode, breakNode);      
-    };
-
-    // Получает кол-во дочерних узлов нода (когда диапазон задается через элементы 
-    // а не текстовые ноды, то offset должен иметь как раз такое значение)
-    const fn2 = (node, prop, index = 0) => {
-      const child = node[prop];
-      if (!child) return index;
-      return fn2(child, prop, ++index);
-    };
+      commonAncestorContainer } = selection.getRangeAt(0);
 
     console.clear();
+    console.log(startContainer);
+    console.log(startOffset);
+    console.log(endContainer);
+    console.log(endOffset);
+    console.log('--------------');
 
     // Клик по слову либо выделение в пределеах одного текстового нода
-    if (startContainer === endContainer) {
-      console.log(startContainer);
-      return;
-    } 
+    if (startContainer === endContainer) 
+      return startContainer;
 
-    // Прихвачен мусорный нод слева
-    if (startOffset === startContainer.textContent.length) {
-      startContainer = fn(startContainer, commonAncestorContainer);
-      startContainer = startContainer.nextSibling;
-      startOffset = isTextNode(startContainer) ? 0 : fn2(startContainer, 'firstChild');
-    } 
+    // Прихвачен мусорный нод слева от выделения
+    if (startOffset === startContainer.textLength) {
+      startContainer = f.closest(startContainer, commonAncestorContainer);
+      startContainer = f.farthest(startContainer.nextSibling, 'firstChild');
+      startOffset = 0;
+    }
 
-    // Прихвачен мусорный нод справа
+    // BUG: Если выбрать два слова, сделать их курсивом, а затем, первое из них, 
+    // сделать жирным и выбрать его двойным кликом, то endContainer и endOffset 
+    // станут аналогичными startContainer и startOffset
+
+    // Прихвачен мусорный нод справа от выделения
     if (endOffset === 0) {
-      endContainer = fn(endContainer, commonAncestorContainer);
-      endContainer = endContainer.previousSibling;
-      endOffset = isTextNode(endContainer) ? 
-        endContainer.textContent.length : fn2(endContainer, 'lastChild');
+      endContainer = f.closest(endContainer, commonAncestorContainer);
+      endContainer = f.farthest(endContainer.previousSibling, 'lastChild');
+      endOffset = endContainer.textLength;
     }
 
-    // // Прихвачен любой нод слева
-    // if (startOffset > 0) {
-    //   startContainer = fn(startContainer, commonAncestorContainer);
-    //   startContainer = startContainer.nextSibling;
-    //   startOffset = isTextNode(startContainer) ? 0 : fn2(startContainer, 'firstChild');
-    // } 
+    console.log(startContainer);
+    console.log(startOffset);
+    console.log(endContainer);
+    console.log(endOffset);
 
-    // // Прихвачен любой нод справа
-    // if (endOffset !== endContainer.textContent.length) {
-    //   endContainer = fn(endContainer, commonAncestorContainer);
-    //   endContainer = endContainer.previousSibling;
-    //   // Здесь длина текста уже не такая, как в условии выше, т.к. нод уже изменился
-    //   endOffset = isTextNode(endContainer) ? 
-    //     endContainer.textContent.length : fn2(endContainer, 'lastChild');
-    // }
-    
-    const newRange = document.createRange();
-    newRange.setStart(startContainer, startOffset);
-    newRange.setEnd(endContainer, endOffset);
-
-    console.log(newRange.commonAncestorContainer);    
-  },
-
-  getTagsOfSelectionTextObsolete() {
-    const selection = document.getSelection();
-    const range = selection.getRangeAt(0);
-
-    const fn = (node, breakNode) => {
+    return f.commonContainer(startContainer, startOffset, endContainer, endOffset);
+  }, {
+    // Возвращает самый верхний нод, чтобы его можно было 
+    // найти среди потомков commonAncestorContainer
+    closest(node, commonNode) {
       const { parentNode } = node;
-      if (parentNode === breakNode) return node;
-      return fn(parentNode, breakNode);      
-    };
+      if (parentNode === commonNode) return node;
+      return this.closest(parentNode, commonNode);      
+    },
 
-    const bfs = (tree, outRes) => {
-      const children = [];
+    // Возвращает самый нижний крайний текстовый нод
+    farthest(node, childProp) {
+      const child = node[childProp];
+      if (!child) return node;
+      return this.farthest(child, childProp);
+    },
 
-      for (const { childNodes, ...rest } of tree) {
-        outRes.push(rest);
-        for (const child of childNodes)
-          children.push(child)
-      }
+    // Набор параметров специфичен только для контекста ф-ции getContainer
+    // т.к. именно здесь удобнее всего задавать такую последовательность.
+    // В более общем контексте можно было бы передавать 2 объекта: start и end
+    commonContainer(sNode, sOffset, eNode, eOffset) {
+      const range = document.createRange();
+      range.setStart(sNode, sOffset);
+      range.setEnd(eNode, eOffset);
+      return range.commonAncestorContainer;
+    },
+  }),
 
-      if (children.length) bfs(children, outRes);
-    };
-
-    const isTextNode = ({ nodeType }) => nodeType === Node.TEXT_NODE;
-    const { childNodes } = range.commonAncestorContainer;
-
-    console.clear();
-
-    // Когда выделяется нестилизованный текст либо когда выделенный 
-    // текст соответствует тексту общего контейнера
-    if (!childNodes.length) {
-      console.log(range.commonAncestorContainer);
-      return [];
+  getParentTags({ localName, parentNode }, contentTag, initialList = []) {
+    // Св-во localName - это название тега в нижнем регистре 
+    if (localName) {
+      if (localName === contentTag) return initialList;
+      initialList.push(localName);
     }
 
-    // Нужно помнить, что в разных ситуациях startNode и endNode 
-    // могут быть как текстовыми узлами так и элементами
-
-    let startNode = fn(range.startContainer, range.commonAncestorContainer);
-    if (range.startOffset === startNode.textContent.length)
-      startNode = startNode.nextSibling;
-
-    let endNode = fn(range.endContainer, range.commonAncestorContainer);
-    if (range.endOffset === 0)
-      endNode = endNode.previousSibling;
-
-    // Срабатывает, когда выделенное слово или фраза прихватыват пустой узел.
-    // Это происходит когда курсор находится немного дальше от края в момент выделения.
-    if (startNode === endNode) {
-      console.log(startNode);
-      return [];
-    }
-
-    // Если в выделение попадают несколько узлов, то возвращаться должен текстовый, 
-    // т.к. именно он содержит минимальный набор тегом среди всего перечня
-
-    if (isTextNode(startNode)) {
-      console.log(startNode);
-      return [];
-    }
-
-    if (isTextNode(endNode)) {
-      console.log(endNode);
-      return [];
-    }
-
-    const startIndex = [].findIndex.call(childNodes, node => node === startNode);
-    const endIndex = [].findIndex.call(childNodes, node => node === endNode);
-    const middleNodes = [].slice.call(childNodes, startIndex + 1, endIndex);
-
-    const textNodeInMiddle = middleNodes.find(node => isTextNode(node));
-    if (textNodeInMiddle) {
-      console.log(textNodeInMiddle);
-      return [];
-    }
-
-    // Если ни один из узлов не является текстовым, тогда надо найти тот узел, 
-    // который имеет минимальный набор, общих для всех, тегов. 
-    // Если и такого узла нет, то вернуть общий контейнер.
-
-    const selNodes = [startNode, ...middleNodes, endNode];
-    console.log(selNodes);
-
-    return [];
+    return selectionUtil.getParentTags(parentNode, contentTag, initialList);
   },
 
   hasSelectionText() {
@@ -267,8 +147,8 @@ const widget = {
   },
 
   Event: class extends CustomEvent {
-    constructor(type, data, wgt) {
-      super(`wgt_${type}`, { detail: { ...data, wgt } });
+    constructor(type, detail) {
+      super(`wgt_${type}`, { detail });
     }
   },
 };
@@ -295,7 +175,7 @@ widget.CheckBox = class extends widget.Widget {
   }
 
   onItemToggle(item, isActive) {
-    this.dispatchEvent(new widget.Event('itemtoggle', { item, isActive }, this));
+    this.dispatchEvent(new widget.Event('itemtoggle', { item, isActive, wgt: this }));
   }
 
   resetItems() {
@@ -322,28 +202,20 @@ const app = {
         }
 
         if (e.detail === 2 && !this.isEditable()) {
-          e.preventDefault();
+          e.preventDefault(); // Предотвращаем лишнее выделение
           this.activate();
-
-          // TODO: Добавить событие выбора текста при двойном щелчке, т.к. если обрабатывать 
-          // только 1 mouseup то можно попасть на слово, которое разделено стилизацей пополам, 
-          // и вместо того, чтобы вернуть для него пустой массив тегов, вернется те теги, 
-          // на которые указывает курсор. Подумать, как можно это реализовать, 
-          // чтобы не пересекаться с событием 1 mouseup... 
+          this.selectText();
         }
       });
 
       this.addEventListener('mouseup', e => {
-        if (e.detail === 1 && this.isEditable())
-          this.onTextSelection(selectionUtil.getTagsOfSelectionText());
+        if (!this.isEditable()) return;
+        if (e.detail === 1 || e.detail === 2)
+          this.selectText();
       });
-
-
     }
 
     activate() {
-      // TODO: Вызывать также событие выделения текста, чтобы сразу, 
-      // после двойного щелчка, получить стили 
       this.setEditable(true);
       this.elem.focus();
     }
@@ -356,8 +228,12 @@ const app = {
       return this.elem.hasAttribute('contenteditable');
     }
 
-    onTextSelection(textTags) {
-      this.dispatchEvent(new widget.Event('textselection', { textTags }, this));
+    selectText() {
+      this.onTextSelect(selectionUtil.getTagsOfSelectionText());
+    }
+
+    onTextSelect(textTags) {
+      this.dispatchEvent(new widget.Event('textselect', { textTags, wgt: this }));
     }
   },
 
@@ -369,46 +245,37 @@ const app = {
     'backColor': ['yellow', 'white'],
   },
 
-  execCommand(commandId, value) {
-    document.execCommand(commandId, false, value);
-  },
-
   init() {
-    const [toolsWgt] = widget.CheckBox.init('.tools');
+    const [toolsCheckBox] = widget.CheckBox.init('.tools');
     const contents = app.Content.init('.content');
 
-    // Здесь нет связи с другими виджетами. Поэтому весь этот ф-ционал можно 
-    // вынести в конструктор виджета ToolsWgt, вместе с execCommand и commandMap
-    toolsWgt.addEventListener('wgt_itemtoggle', e => {
+    toolsCheckBox.addEventListener('wgt_itemtoggle', e => {
       const { item, isActive } = e.detail;
       const { command } = item.dataset;
       const [val1, val2] = app.commandMap[command];
       app.execCommand(command, isActive ? val1 : val2);
     });
 
-    // BUG: Если одинаково стилизовать несколько слов по отдельности, а затем выделить их вместе 
-    // и стилизовать снова, то при следующем выделении панель с инструметами ничего не покажет. 
-    // Это из-за того, что когда слова стилизуются по отдельности пробле между ними заменяется 
-    // на "whitespace". Нужно как-то игнорировать его, или удалять при повторной стилизации.
-
     for (const cnt of contents) {
-      cnt.addEventListener('wgt_textselection', e => {
-        for (const item of toolsWgt.items) {
+      cnt.addEventListener('wgt_textselect', e => {
+        toolsCheckBox.resetItems();
+        for (const item of toolsCheckBox.items) {
           if (e.detail.textTags.some(tag => tag === item.dataset.tag))
             widget.CheckBox.checkItem(item);
         }
       });
     }
 
+    // ToolsCheckBox иногда мерцает при выделениях именно из-за этого события.
     document.addEventListener('selectionchange', () => {
       if (!selectionUtil.hasSelectionText())
-        toolsWgt.resetItems();
+        toolsCheckBox.resetItems();
     });
 
     // Перехватываем события на этапе "погружения", чтобы обработать их первее
     document.addEventListener('mousedown', e => {
       if (e.detail === 2) {
-        // Выбираем ближейшего предка т.к. при стилизации узлы разбиваются на подузлы
+        // Выбираем ближейшего предка т.к. при стилизации ноды разбиваются на сабноды
         const elem = e.target.closest('.content');
 
         if (!elem) return;
@@ -422,6 +289,10 @@ const app = {
         }
       }
     }, { capture: true });
+  },
+
+  execCommand(commandId, value) {
+    document.execCommand(commandId, false, value);
   },
 };
 
