@@ -45,15 +45,8 @@ const selectionUtil = {
   // вернуть назад, не отпуская ЛКМ, то в выделение попадет мусорный нод (без текста), 
   // из-за которого получается неправильный диапазон.
   getContainer: Object.assign(function f(selection) {
-    let { startContainer, startOffset, endContainer, endOffset, 
-      commonAncestorContainer } = selection.getRangeAt(0);
-
-    console.clear();
-    console.log(startContainer);
-    console.log(startOffset);
-    console.log(endContainer);
-    console.log(endOffset);
-    console.log('--------------');
+    let { startContainer, startOffset, 
+      endContainer, endOffset} = selection.getRangeAt(0);
 
     // Клик по слову либо выделение в пределеах одного текстового нода
     if (startContainer === endContainer) 
@@ -61,42 +54,23 @@ const selectionUtil = {
 
     // Прихвачен мусорный нод слева от выделения
     if (startOffset === startContainer.textLength) {
-      startContainer = f.closest(startContainer, commonAncestorContainer);
-      startContainer = f.farthest(startContainer.nextSibling, 'firstChild');
+      startContainer = f.deepest(startContainer.nextSibling, 'firstChild');
       startOffset = 0;
     }
 
-    // BUG: Если выбрать два слова, сделать их курсивом, а затем, первое из них, 
-    // сделать жирным и выбрать его двойным кликом, то endContainer и endOffset 
-    // станут аналогичными startContainer и startOffset
-
     // Прихвачен мусорный нод справа от выделения
     if (endOffset === 0) {
-      endContainer = f.closest(endContainer, commonAncestorContainer);
-      endContainer = f.farthest(endContainer.previousSibling, 'lastChild');
+      endContainer = f.deepest(endContainer.previousSibling, 'lastChild');
       endOffset = endContainer.textLength;
     }
 
-    console.log(startContainer);
-    console.log(startOffset);
-    console.log(endContainer);
-    console.log(endOffset);
-
     return f.commonContainer(startContainer, startOffset, endContainer, endOffset);
   }, {
-    // Возвращает самый верхний нод, чтобы его можно было 
-    // найти среди потомков commonAncestorContainer
-    closest(node, commonNode) {
-      const { parentNode } = node;
-      if (parentNode === commonNode) return node;
-      return this.closest(parentNode, commonNode);      
-    },
-
     // Возвращает самый нижний крайний текстовый нод
-    farthest(node, childProp) {
+    deepest(node, childProp) {
       const child = node[childProp];
       if (!child) return node;
-      return this.farthest(child, childProp);
+      return this.deepest(child, childProp);
     },
 
     // Набор параметров специфичен только для контекста ф-ции getContainer
@@ -267,10 +241,12 @@ const app = {
     }
 
     // ToolsCheckBox иногда мерцает при выделениях именно из-за этого события.
-    document.addEventListener('selectionchange', () => {
-      if (!selectionUtil.hasSelectionText())
-        toolsCheckBox.resetItems();
-    });
+    // document.addEventListener('selectionchange', () => {
+    //   if (!selectionUtil.hasSelectionText())
+    //     toolsCheckBox.resetItems();
+    // });
+
+    // TODO: Блокировать toolsCheckBox пока одно из полей контента не станет активным
 
     // Перехватываем события на этапе "погружения", чтобы обработать их первее
     document.addEventListener('mousedown', e => {
