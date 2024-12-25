@@ -190,12 +190,12 @@ const app = {
         const { item, isActive } = e.detail;
         const { command } = item.dataset;
         const [val1, val2] = this.commandMap[command];
-        this.onToolExec(command, isActive ? val1 : val2);
+        this.onTool(command, isActive ? val1 : val2);
       });
     }
 
-    onToolExec(command, value) {
-      this.dispatchEvent(new widget.Event('toolexec', { command, value }));
+    onTool(command, value) {
+      this.dispatchEvent(new widget.Event('tool', { command, value }));
     }
 
     toggleItem(item) {
@@ -252,9 +252,8 @@ const app = {
       container: '.text-block' 
     });
 
-    toolsCheckBox.addEventListener('wgt_toolexec', e => {
-      const { command, value } = e.detail;
-      app.execCommand(command, value);
+    toolsCheckBox.addEventListener('wgt_tool', e => {
+      app.execCommand(e.detail);
     });
 
     for (const content of contents) {
@@ -263,10 +262,9 @@ const app = {
       });
 
       content.addEventListener('focusout', e => {
-        const canStayInFocus = initiator => {
-          if (initiator.isTextNode) 
-            initiator = initiator.parentNode;
-          return !!initiator.closest('.tool, button');
+        const canStayInFocus = causer => {
+          if (causer.isTextNode) causer = causer.parentNode;
+          return !!causer.closest('button');
         };
 
         if (canStayInFocus(e.explicitOriginalTarget)) {
@@ -294,15 +292,14 @@ const app = {
     }
 
     document.addEventListener('mousedown', e => {
-      if (e.detail < 2) return;
-      if (e.target.closest('.content, .tool, button')) return;
+      if (e.detail < 2 || e.target.closest('.content, button')) return;
       contents.filter(cnt => cnt.isEditable())
         .forEach(cnt => cnt.setEditable(false));
     });
   },
 
-  execCommand(commandId, value) {
-    document.execCommand(commandId, false, value);
+  execCommand({ command, value }) {
+    document.execCommand(command, false, value);
   },
 };
 
