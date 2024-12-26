@@ -1,3 +1,12 @@
+String.prototype.format = function() {
+  return this.replace(/{(\d+)}/g, (match, number) => { 
+    return typeof arguments[number] != 'undefined' 
+      ? arguments[number] 
+      : match
+    ;
+  });
+};
+
 Object.defineProperties(Node.prototype, {
   textLength: {
     get() { return this.textContent.length; }
@@ -92,13 +101,23 @@ const selectionUtil = {
     },
   }),
 
-  getParentTags({ localName, parentNode }, contentTag, initialList = []) {
-    // Св-во localName - это название тега в нижнем регистре 
-    if (localName) {
-      if (localName === contentTag) 
-        return initialList;
+  // getParentTags({ localName, parentNode }, contentTag, initialList = []) {
+  //   // Св-во localName - это название тега в нижнем регистре 
+  //   if (localName) {
+  //     if (localName === contentTag) 
+  //       return initialList;
         
-      initialList.push(localName);
+  //     initialList.push(localName);
+  //   }
+
+  //   return selectionUtil.getParentTags(parentNode, contentTag, initialList);
+  // },
+
+  getParentTags({ tagName, parentNode }, contentTag, initialList = []) {
+    if (tagName) {
+      tagName = tagName.toLowerCase();
+      if (tagName === contentTag) return initialList;
+      initialList.push(tagName);
     }
 
     return selectionUtil.getParentTags(parentNode, contentTag, initialList);
@@ -152,7 +171,7 @@ widget.CheckBox = class extends widget.Widget {
   }
 
   get items() {
-    return this._items ??= this.elem.getElementsByClassName(this.itemClass);
+    return this._items ??= this.elem.querySelectorAll(`.${this.itemClass}`);
   }
 
   get itemClass() { return this.dataset.item; }
@@ -168,6 +187,22 @@ widget.CheckBox = class extends widget.Widget {
   }
 
   static checkItem(item) { item.addClass('active'); }
+};
+
+widget.Dialog = class extends widget.Widget {
+  constructor(elem, opts) {
+    super(elem, opts);
+    this.control.addEventListener('click', () => {
+      this.open(this._payload?.(this.elem.id));
+    });
+  }
+
+  get control() {
+    return this._control ??= document.querySelector(this.opts.control);
+  }
+
+  open(payload) { this.elem.showModal(); }
+  close() { this.elem.close(); }
 };
 
 const app = {
@@ -208,8 +243,13 @@ const app = {
     constructor(elem, opts) {
       super(elem, opts);
 
+      this.addEventListener('click', e => {
+        if (e.target.localName !== 'span') return;
+        console.log('show dialog');
+      });
+
       this.addEventListener('mousedown', e => {
-        if (e.detail === 2 && !this.isEditable()) {
+        if (e.detail > 1 && !this.isEditable()) {
           e.preventDefault(); // Предотвращаем выделение
           this.activate();
           this.selectText();
@@ -217,7 +257,8 @@ const app = {
       });
 
       this.addEventListener('mouseup', () => {
-        if (this.isEditable()) this.selectText();
+        if (!this.isEditable()) return;
+        this.selectText();
       });
     }
 
@@ -248,9 +289,8 @@ const app = {
 
   init() {
     const [toolsCheckBox] = app.ToolsCheckBox.init('.tools');
-    const contents = app.Content.init('.content', { 
-      container: '.text-block' 
-    });
+    const contents = app.Content.init('.content', { container: '.text-block' });
+    widget.Dialog.init('#dict_dialog', { control: '#dictionary' });
 
     toolsCheckBox.addEventListener('wgt_tool', e => {
       app.execCommand(e.detail);
@@ -292,9 +332,15 @@ const app = {
     }
 
     document.addEventListener('mousedown', e => {
-      if (e.detail < 2 || e.target.closest('.content, button')) return;
-      contents.filter(cnt => cnt.isEditable())
-        .forEach(cnt => cnt.setEditable(false));
+      if (e.detail < 2) return;
+
+      const inAvailableArea = elem => 
+        !!elem.closest('.content, button, dialog');
+
+      if (inAvailableArea(e.target)) return;
+
+      const editables = contents.filter(cnt => cnt.isEditable());
+      editables.forEach(cnt => cnt.setEditable(false));
     });
   },
 

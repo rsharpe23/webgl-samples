@@ -34,9 +34,8 @@
     <div class="main">
       <div class="text-block">
         <div class="header">
-          <h3 class="title">Русский</h3>
+          <h3 class="title">Перевод</h3>
           <button class="btn">&#10226;</button>
-          <span class="scratch hide">*</span>
         </div>
         <div class="content">
           Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации "Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст.." Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию, так что поиск по ключевым словам "lorem ipsum" сразу показывает, как много веб-страниц всё ещё дожидаются своего настоящего рождения. За прошедшие годы текст Lorem Ipsum получил много версий. Некоторые версии появились по ошибке, некоторые - намеренно (например, юмористические варианты).
@@ -45,9 +44,8 @@
 
       <div class="text-block">
         <div class="header">
-          <h3 class="title">Английский</h3>
+          <h3 class="title">Оригинал</h3>
           <button class="btn">&#10226;</button>
-          <span class="scratch">*</span>
         </div>
         <div class="content">
           Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации "Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст.." Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию, так что поиск по ключевым словам "lorem ipsum" сразу показывает, как много веб-страниц всё ещё дожидаются своего настоящего рождения. За прошедшие годы текст Lorem Ipsum получил много версий. Некоторые версии появились по ошибке, некоторые - намеренно (например, юмористические варианты).
@@ -55,6 +53,76 @@
       </div>
     </div>
   </div>
+
+  <dialog class="dialog" id="dict_dialog">
+    <form method="dialog" id="form">
+      <div class="header">
+        <h3 class="title">Словарь</h3>
+        <button class="close">×</button>
+      </div>
+
+      <fieldset>
+        <label>Новое слово: <input type="text" name="word[]" placeholder="Оригинал" autofocus> 
+          <input type="text" name="word[]" placeholder="Перевод"></label>
+
+        <select name="type">
+          <option value="noun">Существительное</option>
+          <option value="adjective">Прилагательное</option>
+          <option value="adverb">Наречие</option>
+          <option value="verb">Глагол</option>
+          <option value="phrasal_verb">Фразовый глагол</option>
+          <option value="idiom">Идиома</option>
+        </select>
+
+        <button type="button">Добавить</button>
+      </fieldset>
+
+      <div class="words">
+        <!-- TODO: Стилизовать ссылку и добавить возможность удалять слово -->
+        <div class="type-block" hidden>
+          <h4 class="title">{0}:</h4>
+          <ul class="list">
+            <li><a href="#">{0} - {1}</a></li>
+          </ul>
+        </div>
+
+        <!-- <div class="type-block">
+          <h4 class="title">Существительные:</h4>
+          <ul class="list"><li>{0} - {1}</li></ul>
+        </div>
+  
+        <div class="type-block">
+          <h4 class="title">Прилагательные:</h4>
+          <ul class="list"><li>{0} - {1}</li></ul>
+        </div>
+  
+        <div class="type-block">
+          <h4 class="title">Наречия:</h4>
+          <ul class="list"><li>{0} - {1}</li></ul>
+        </div>
+  
+        <div class="type-block">
+          <h4 class="title">Глаголы:</h4>
+          <ul class="list"><li>{0} - {1}</li></ul>
+        </div>
+  
+        <div class="type-block">
+          <h4 class="title">Фразовые глаголы:</h4>
+          <ul class="list"><li>{0} - {1}</li></ul>
+        </div>
+  
+        <div class="type-block">
+          <h4 class="title">Устойчивые связки (идиомы):</h4>
+          <ul class="list"><li>{0} - {1}</li></ul>
+        </div> -->
+      </div>
+
+      <div class="footer">
+        <button class="btn">OK</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="./main.js"></script>
 </body>
 </html>
