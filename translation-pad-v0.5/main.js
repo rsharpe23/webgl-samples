@@ -587,8 +587,10 @@ const app = {
         // --------------
 
         const span = e.detail.target.closest('span');
-
         if (!span) return;
+
+        // Вызывать при редактировании желтого текста и при 
+        // редактировании текста, внутри tooltip
 
         const rect = span.getBoundingClientRect();
 
@@ -603,16 +605,17 @@ const app = {
         const halfWidth = offsetWidth / 2;
         const centerOfSpan = rect.left + rect.width / 2;
 
+        // 16 - это внутренний отступ контента, по краям
         if (centerOfSpan - contentRect.left > halfWidth) {
 
           if (contentRect.right - centerOfSpan < halfWidth) {
-            style.left = `${rect.right - offsetWidth}px`;
+            style.left = `${contentRect.right - offsetWidth - 16}px`;
           } else {
             style.left = `${centerOfSpan - halfWidth}px`;
           }
 
         } else {
-          style.left = `${rect.left}px`;
+          style.left = `${contentRect.left + 16}px`;
         }
 
         // 10 - это половина ширины стрелки
@@ -626,6 +629,9 @@ const app = {
     }
 
     document.addEventListener('mousedown', e => {
+      // TODO: Сделать более универсальным, чтобы подходило 
+      // также и для контента внутри tooltip
+
       if (e.detail < 2) return;
 
       const inAvailableArea = elem => 

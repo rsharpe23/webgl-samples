@@ -174,10 +174,6 @@ fieldset {
   cursor: text;
 }
 
-/* .main .content span {
-  cursor: pointer;
-} */
-
 .dialog .header {
   margin-bottom: 1rem;
   justify-content: space-between;
