@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Translation Pad</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="shortcut icon" href="#">
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="controls">
+        <button id="new_file">Новый перевод</button>
+        <button id="save_file">Сохранить</button>
+        <button id="export_file">Экспорт</button>
+        <button id="import_file">Импорт</button>
+      </div>
+
+      <div class="toolbar">
+        <button class="tool" data-tag="font" data-command="foreColor">R</button>
+        <button class="tool" data-tag="b" data-command="bold">B</button>
+        <button class="tool" data-tag="i" data-command="italic">I</button>
+        <button class="tool" data-tag="strike" data-command="strikeThrough">&nbspS&nbsp</button>
+        <button class="tool" data-tag="span" data-command="backColor">M</button>
+      </div>
+
+      <div class="controls">
+        <button id="dictionary">Словарь</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="text-block">
+        <div class="header">
+          <h3 class="title">Перевод</h3>
+          <button class="btn">&#10226;</button>
+        </div>
+        <div class="content">
+          Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее <span style="background-color: yellow;">стандартное</span> заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации "Здесь ваш текст.. Здесь ваш текст.. <span style="background-color: yellow;">Здесь</span> ваш текст.." Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию, так что <span style="background-color: yellow;">поиск</span> по ключевым словам "lorem ipsum" сразу показывает, как много веб-страниц всё ещё дожидаются своего настоящего рождения. За прошедшие годы текст Lorem Ipsum получил много версий. <span style="background-color: yellow;">Некоторые</span> версии появились по ошибке, некоторые - намеренно (например, юмористические варианты).
+          <!-- Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации "Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст.." Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию, так что поиск по ключевым словам "lorem ipsum" сразу показывает, как много веб-страниц всё ещё дожидаются своего настоящего рождения. За прошедшие годы текст Lorem Ipsum получил много версий. Некоторые версии появились по ошибке, некоторые - намеренно (например, юмористические варианты). -->
+        </div>
+      </div>
+
+      <div class="text-block">
+        <div class="header">
+          <h3 class="title">Оригинал</h3>
+          <button class="btn">&#10226;</button>
+        </div>
+        <div class="content">
+          Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации "Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст.." Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию, так что поиск по ключевым словам "lorem ipsum" сразу показывает, как много веб-страниц всё ещё дожидаются своего настоящего рождения. За прошедшие годы текст Lorem Ipsum получил много версий. Некоторые версии появились по ошибке, некоторые - намеренно (например, юмористические варианты).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <dialog class="dialog" id="dict_dialog">
+    <div class="header">
+      <h3 class="title">Словарь</h3>
+      <button class="close" data-command="close">×</button>
+    </div>
+
+    <form>
+      <fieldset>
+        <label>Новое слово: <input type="text" name="words[]" placeholder="Оригинал" autofocus> 
+          <input type="text" name="words[]" placeholder="Перевод"></label>
+
+        <select name="type">
+          <option value="noun">Существительное</option>
+          <option value="adjective">Прилагательное</option>
+          <option value="adverb">Наречие</option>
+          <option value="verb">Глагол</option>
+          <option value="phrasal_verb">Фразовый глагол</option>
+          <option value="idiom">Идиома</option>
+        </select>
+
+        <button type="button" name="control" data-command="add" 
+          data-add-text="Добавить" data-update-text="Обновить">Добавить</button>
+      </fieldset>
+    </form>
+
+    <div class="words">
+      <div class="type-block" hidden>
+        <h4 class="title">{0}:</h4>
+        <ul class="list">
+          <li class="item">
+            <a href="#" class="close" data-command="remove">×</a>
+            <a href="#" class="text" data-command="edit">{0} - {1}</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="btn" data-command="close">OK</button>
+    </div>
+  </dialog>
+
+  <div class="tooltip">
+    <div class="arrow"></div>
+    <!-- <div class="content" contenteditable>Комментарий...</div> -->
+    <div class="content" contenteditable>Lorem ipsum dolor sit amet consectetur adipisicing elit. Suscipit voluptate odit totam rerum accusantium, quo vitae doloribus nostrum molestiae quae, aspernatur, ratione aliquid porro autem blanditiis tempore? Laboriosam, repellendus facilis.</div>
+  </div>
+
+  <script src="./main.js"></script>
+</body>
+</html>
